@@ -1,0 +1,49 @@
+# Archipel41 – serveur central de l'agence
+#   cp .env.example .env   (puis modifier les mots de passe et le domaine)
+#   docker compose up -d --build
+services:
+  db:
+    build: ./database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: web/backend/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - appdata:/data
+    expose:
+      - "8041"
+
+  # Proxy HTTPS (certificat Let's Encrypt automatique) – chiffrement des communications
+  proxy:
+    image: caddy:2.8
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    command: caddy reverse-proxy --from ${ARCHIPEL_DOMAIN} --to app:8041
+    volumes:
+      - caddydata:/data
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  appdata:
+  caddydata:

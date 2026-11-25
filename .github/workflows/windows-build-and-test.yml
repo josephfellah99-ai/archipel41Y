@@ -1,0 +1,38 @@
+# Construit l'installateur Windows puis l'installe et le teste sur un vrai Windows (windows-latest = Windows Server 2022).
+name: Archipel41 – build et test Windows
+on: [workflow_dispatch, push]
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y p7zip-full binutils tesseract-ocr-fra
+      - run: python -m venv .venv && .venv/bin/pip install -r web/backend/requirements-dev.txt
+      - run: cd tests && ../.venv/bin/python -m pytest backend
+      - run: ./scripts/build/build_desktop.sh
+      - uses: actions/upload-artifact@v4
+        with: { name: archipel41-windows, path: "desktop/build/dist/*.exe" }
+
+  test-windows:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: archipel41-windows, path: dist }
+      - name: Installation silencieuse
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist\Archipel41-Setup-*.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList "/S" -Wait
+          Test-Path "$env:LOCALAPPDATA\Programs\Archipel41\Archipel41.exe" | Should -Be $true
+      - name: Démarrage du moteur embarqué et test de l'API (création d'agence, import d'un devis scanné avec OCR)
+        shell: pwsh
+        run: ./scripts/install/test_windows_install.ps1
+      - name: Désinstallation silencieuse
+        shell: pwsh
+        run: Start-Process "$env:LOCALAPPDATA\Programs\Archipel41\Uninstall Archipel41.exe" -ArgumentList "/S" -Wait

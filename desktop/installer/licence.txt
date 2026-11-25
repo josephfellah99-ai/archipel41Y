@@ -1,0 +1,13 @@
+ARCHIPEL41 – CONDITIONS D'UTILISATION
+
+Archipel41 est un logiciel de gestion destiné aux agences d'architecture.
+
+1. Les données saisies et importées dans Archipel41 restent la propriété de l'agence utilisatrice. Elles sont stockées localement sur ce poste (et, si vous le configurez, sur le serveur central de votre agence).
+
+2. Les analyses produites par le logiciel (extraction et comparaison de devis, analyses urbanistiques, synthèses de l'assistant) sont des aides à la décision. Elles ne se substituent pas à l'analyse et à la responsabilité professionnelle de l'architecte.
+
+3. Lorsque vous configurez un fournisseur d'intelligence artificielle externe, des extraits de documents peuvent lui être transmis selon les règles de confidentialité définies dans les paramètres. Les documents marqués confidentiels ne sont jamais transmis sans autorisation explicite de l'administrateur.
+
+4. Composants tiers inclus : Electron (MIT), Python (PSF), FastAPI (MIT), SQLAlchemy (MIT), Tesseract OCR (Apache 2.0), React (MIT) et les bibliothèques listées dans la documentation technique, chacun sous sa propre licence.
+
+En cliquant sur « J'accepte », vous acceptez ces conditions.

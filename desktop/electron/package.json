@@ -1,0 +1,132 @@
+{
+  "name": "archipel41",
+  "productName": "Archipel41",
+  "version": "1.0.0",
+  "description": "Archipel41 – assistant numérique intelligent pour agences d'architecture",
+  "author": "Archipel41",
+  "license": "UNLICENSED",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win --x64 --publish never",
+    "dist:linux-dir": "electron-builder --linux dir --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "resedit": "2.0.3"
+  },
+  "build": {
+    "appId": "fr.archipel41.desktop",
+    "productName": "Archipel41",
+    "copyright": "© 2026 Archipel41",
+    "directories": {
+      "output": "../build/dist",
+      "buildResources": "../installer"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash.html",
+      "package.json"
+    ],
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "../build/backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**"
+        ]
+      }
+    ],
+    "afterPack": "./afterPack.js",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "../installer/icon.ico",
+      "signAndEditExecutable": false,
+      "extraResources": [
+        {
+          "from": "../build/python-win",
+          "to": "python",
+          "filter": [
+            "**/*"
+          ]
+        },
+        {
+          "from": "../build/tesseract-win",
+          "to": "tesseract",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Archipel41",
+      "menuCategory": false,
+      "installerIcon": "../installer/icon.ico",
+      "uninstallerIcon": "../installer/icon.ico",
+      "installerHeaderIcon": "../installer/icon.ico",
+      "uninstallDisplayName": "Archipel41",
+      "artifactName": "Archipel41-Setup-${version}-x64.${ext}",
+      "installerLanguages": [
+        "fr_FR"
+      ],
+      "language": "1036",
+      "include": "../installer/installer.nsh",
+      "license": "../installer/licence.txt",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
+    },
+    "portable": {
+      "artifactName": "Archipel41-Portable-${version}-x64.${ext}",
+      "requestExecutionLevel": "user"
+    },
+    "linux": {
+      "target": [
+        "dir"
+      ],
+      "extraResources": [
+        {
+          "from": "../build/python-linux",
+          "to": "python",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://example.invalid/archipel41/mises-a-jour/"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://example.invalid/archipel41.git"
+  }
+}

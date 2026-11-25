@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="4.497" timestamp="2026-11-25T13:17:59.402159+00:00" hostname="vm"><testcase classname="sync.test_sync" name="test_full_sync_cycle" time="4.487" /></testsuite></testsuites>

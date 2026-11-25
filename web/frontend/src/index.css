@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Jetons de couleur – palette Archipel41 (valeurs RVB pour l'opacité Tailwind) */
+:root {
+  --bg: 248 247 242;        /* Ivoire #F8F7F2 */
+  --surface: 255 255 255;
+  --sunken: 240 237 229;
+  --line: 226 221 209;      /* dérivé du beige minéral #E8E3D8 */
+  --ink: 46 50 48;          /* Gris anthracite */
+  --muted: 107 114 110;
+  --forest: 37 58 51;       /* Vert forêt #253A33 */
+  --sage: 113 133 120;      /* Vert sauge #718578 */
+  --sand: 232 227 216;      /* Beige minéral #E8E3D8 */
+  --danger: 176 69 50;
+  --warn: 176 122 38;
+  --info: 70 103 140;
+  --ok: 61 122 86;
+  color-scheme: light;
+}
+.dark {
+  --bg: 20 25 23;
+  --surface: 28 34 31;
+  --sunken: 24 29 27;
+  --line: 48 57 53;
+  --ink: 232 227 216;
+  --muted: 156 165 159;
+  --forest: 143 171 152;
+  --sage: 125 148 133;
+  --sand: 52 60 56;
+  --danger: 226 120 98;
+  --warn: 222 170 92;
+  --info: 130 165 205;
+  --ok: 120 186 146;
+  color-scheme: dark;
+}
+
+html, body, #root { height: 100%; }
+body { @apply bg-bg text-ink antialiased; font-feature-settings: "cv11", "ss01"; }
+::selection { background: rgb(var(--sage) / 0.3); }
+
+@layer components {
+  .card { @apply bg-surface border border-line rounded-xl shadow-soft; }
+  .input { @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/70
+           focus:outline-none focus:ring-2 focus:ring-sage/40 focus:border-sage disabled:opacity-60; }
+  .label { @apply block text-xs font-medium text-muted mb-1; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition
+         focus:outline-none focus-visible:ring-2 focus-visible:ring-sage/50 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap; }
+  .btn-primary { @apply btn bg-forest text-white hover:bg-forest/90 dark:text-bg; }
+  .btn-secondary { @apply btn bg-surface border border-line text-ink hover:bg-sunken; }
+  .btn-ghost { @apply btn text-ink hover:bg-sunken; }
+  .btn-danger { @apply btn bg-danger text-white hover:bg-danger/90; }
+  .table { @apply w-full text-sm; }
+  .table th { @apply text-left text-xs font-medium text-muted uppercase tracking-wide px-3 py-2 border-b border-line bg-sunken/60 whitespace-nowrap; }
+  .table td { @apply px-3 py-2 border-b border-line/70 align-top; }
+  .table tr:last-child td { @apply border-b-0; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap; }
+  .prose-a41 h2 { @apply text-base font-semibold mt-4 mb-1.5 text-forest; }
+  .prose-a41 h3 { @apply text-sm font-semibold mt-3 mb-1 text-ink; }
+  .prose-a41 p { @apply my-1.5 leading-relaxed; }
+  .prose-a41 ul { @apply list-disc pl-5 my-1.5 space-y-0.5; }
+  .prose-a41 strong { @apply font-semibold; }
+  .prose-a41 hr { @apply my-3 border-line; }
+}
+
+.scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(var(--line)); border-radius: 8px; }
+@media print { .no-print { display: none !important; } body { background: white; } }
+
+/* Les colonnes de grille peuvent rétrécir : les tableaux larges défilent dans leur propre conteneur */
+.grid > * { min-width: 0; }

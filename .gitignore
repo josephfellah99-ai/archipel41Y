@@ -1,0 +1,17 @@
+# Dépendances et environnements
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+# Données locales et secrets
+var/
+.env
+*.db
+*.db-wal
+*.db-shm
+.secret_key
+# Artefacts de construction (régénérés par scripts/build/build_desktop.sh)
+web/frontend/dist/
+desktop/build/
+docs/sources/*.html
+tests/e2e/e2e-results.json
