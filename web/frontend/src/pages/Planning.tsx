@@ -2,8 +2,8 @@ import { GanttChartSquare, Plus, CloudRain, Wind, Thermometer, Check, X, Flag, A
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
-import { ACTIVITY_LABELS, addDays, dateFr, isoDate } from "../lib/format";
-import { Card, Empty, ErrorBox, Field, Modal, Notice, PageHeader, Select, Spinner, Tabs } from "../components/ui";
+import { ACTIVITY_LABELS, addDays, dateFr, isoDate, toNum } from "../lib/format";
+import { AsyncButton, Card, Empty, ErrorBox, Field, Modal, Notice, NumberInput, PageHeader, Select, Spinner, Tabs } from "../components/ui";
 import { NeedProject } from "./Quotes";
 
 const DAY_MS = 86400000;
@@ -19,8 +19,11 @@ function TaskModal({ task, tasks, projectId, onClose, onSaved }: { task: any; ta
   const can = perms.write;
   const save = async () => {
     try {
-      const body = { ...f, project_id: projectId, duration_days: Number(f.duration_days || 0), progress: Number(f.progress || 0), responsible_id: f.responsible_id || null,
-        company_id: f.company_id || null, lot_id: f.lot_id || null, milestone: !!f.milestone || Number(f.duration_days) === 0 };
+      if (!f.start_date) throw new Error("Date de début : champ obligatoire.");
+      const dur = toNum(f.duration_days, "Durée") ?? 0;
+      if (!Number.isInteger(dur) || dur < 0) throw new Error("Durée : nombre entier de jours attendu (0 pour un jalon).");
+      const body = { ...f, project_id: projectId, duration_days: dur, progress: toNum(f.progress, "Avancement") ?? 0, responsible_id: f.responsible_id || null,
+        company_id: f.company_id || null, lot_id: f.lot_id || null, milestone: !!f.milestone || dur === 0 };
       for (const k of ["end_date", "earliest_start", "dependency_violation", "expected_progress", "late", "late_days", "critical", "baseline_drift"]) delete body[k];
       if (f.id) await api.put(`/api/tasks/${f.id}`, body, `Tâche ${f.name}`); else await api.post("/api/tasks", body, `Tâche ${f.name}`);
       toast("Tâche enregistrée."); onSaved(); onClose();
@@ -28,18 +31,18 @@ function TaskModal({ task, tasks, projectId, onClose, onSaved }: { task: any; ta
   };
   return (
     <Modal open onClose={onClose} title={f.id ? f.name : "Nouvelle tâche"} footer={<>
-      {f.id && perms.delete && <button className="btn-ghost text-danger mr-auto" onClick={async () => { await api.del(`/api/tasks/${f.id}`); onSaved(); onClose(); }}>Supprimer</button>}
-      <button className="btn-secondary" onClick={onClose}>Annuler</button>{can && <button className="btn-primary" onClick={save} disabled={!f.name}>Enregistrer</button>}</>}>
+      {f.id && perms.delete && <button className="btn-ghost text-danger mr-auto" onClick={async () => { try { await api.del(`/api/tasks/${f.id}`); onSaved(); onClose(); } catch (e) { toastError(e); } }}>Supprimer</button>}
+      <button className="btn-secondary" onClick={onClose}>Annuler</button>{can && <AsyncButton onClick={save} disabled={!f.name?.trim()}>Enregistrer</AsyncButton>}</>}>
       <div className="grid sm:grid-cols-2 gap-3">
         <Field label="Intitulé *" className="sm:col-span-2"><input className="input" disabled={!can} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-        <Field label="Début"><input className="input" type="date" disabled={!can} value={f.start_date} onChange={(e) => setF({ ...f, start_date: e.target.value })} /></Field>
-        <Field label="Durée (jours, 0 = jalon)"><input className="input" type="number" min={0} disabled={!can} value={f.duration_days} onChange={(e) => setF({ ...f, duration_days: e.target.value })} /></Field>
+        <Field label="Début" required><input className="input" type="date" disabled={!can} value={f.start_date || ""} onChange={(e) => setF({ ...f, start_date: e.target.value })} /></Field>
+        <Field label="Durée (jours, 0 = jalon)"><NumberInput integer min={0} disabled={!can} value={f.duration_days} onChange={(v) => setF({ ...f, duration_days: v })} /></Field>
         <Field label="Type d'activité (analyse météo)"><Select disabled={!can} value={f.activity} onChange={(v) => setF({ ...f, activity: v })} options={Object.entries(ACTIVITY_LABELS).map(([v, l]) => ({ value: v, label: l }))} /></Field>
         <Field label="Priorité"><Select disabled={!can} value={f.priority} onChange={(v) => setF({ ...f, priority: v })} options={[{ value: "basse", label: "Basse" }, { value: "normale", label: "Normale" }, { value: "haute", label: "Haute" }]} /></Field>
         <Field label="Responsable"><Select disabled={!can} value={f.responsible_id || ""} onChange={(v) => setF({ ...f, responsible_id: v })} placeholder="—" options={(users.data || []).map((u) => ({ value: u.id, label: u.full_name }))} /></Field>
         <Field label="Entreprise"><Select disabled={!can} value={f.company_id || ""} onChange={(v) => setF({ ...f, company_id: v })} placeholder="—" options={(companies.data || []).map((c) => ({ value: c.id, label: c.name }))} /></Field>
         <Field label="Lot"><Select disabled={!can} value={f.lot_id || ""} onChange={(v) => setF({ ...f, lot_id: v })} placeholder="—" options={(lots.data || []).map((l) => ({ value: l.id, label: `${l.code} ${l.name}` }))} /></Field>
-        <Field label="Avancement (%)"><input className="input" type="number" min={0} max={100} disabled={!can} value={f.progress} onChange={(e) => setF({ ...f, progress: e.target.value })} /></Field>
+        <Field label="Avancement (%)"><NumberInput min={0} max={100} suffix="%" disabled={!can} value={f.progress} onChange={(v) => setF({ ...f, progress: v })} /></Field>
         <Field label="Dépend de (fin → début)" className="sm:col-span-2">
           <select multiple className="input h-28" disabled={!can} value={f.depends_on || []} onChange={(e) => setF({ ...f, depends_on: Array.from(e.target.selectedOptions).map((o) => o.value) })}>
             {tasks.filter((t) => t.id !== f.id).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}

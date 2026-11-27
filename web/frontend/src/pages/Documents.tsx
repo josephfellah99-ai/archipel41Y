@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { api, blobUrl, download } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
 import { bytes, dateFr, dateTimeFr, DOC_CATEGORIES } from "../lib/format";
-import { Card, Empty, ErrorBox, Field, Modal, Notice, PageHeader, Select, Spinner, Tabs, useDebounced } from "../components/ui";
+import { Card, Empty, ErrorBox, Field, Modal, Notice, PageHeader, Select, Spinner, Tabs, useDebounced, AsyncButton } from "../components/ui";
 
 const PREVIEWABLE = new Set(["pdf", "png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "txt", "md", "csv"]);
 const TEXT_STATUS: Record<string, string> = { ok: "Texte extrait", ocr: "Texte extrait par OCR", vide: "Aucun texte", non_supporte: "Format non analysé", erreur: "Erreur d'extraction", en_attente: "En attente" };
@@ -101,7 +101,7 @@ function DocModal({ doc, onClose, onChanged }: { doc: any; onClose: () => void; 
           <label className="text-sm flex items-center gap-2 sm:col-span-2"><input type="checkbox" disabled={!perms.write} checked={meta.confidential} onChange={(e) => setMeta({ ...meta, confidential: e.target.checked })} /> Document confidentiel (jamais transmis à un fournisseur d'IA externe sans autorisation de l'administrateur)</label>
           <div className="text-xs text-muted sm:col-span-2">Analyse du contenu : {TEXT_STATUS[doc.text_status] || doc.text_status} {doc.page_count ? `· ${doc.page_count} page(s)` : ""}
             {perms.write && <button className="text-sage ml-2" onClick={async () => { try { await api.call("POST", `/api/documents/${doc.id}/reindex`); toast("Document réindexé."); } catch (e) { toastError(e); } }}><RefreshCw size={11} className="inline" /> Réindexer</button>}</div>
-          {perms.write && <div className="sm:col-span-2"><button className="btn-primary" onClick={saveMeta}>Enregistrer le classement</button></div>}
+          {perms.write && <div className="sm:col-span-2"><AsyncButton onClick={saveMeta}>Enregistrer le classement</AsyncButton></div>}
         </div>
       )}
       {tab === "versions" && (full.data ? (

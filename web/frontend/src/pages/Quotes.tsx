@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, blobUrl, download } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
-import { CMP_STATUS, dateFr, eur, LINE_STATUS, num, parseNum, QUOTE_STATUS } from "../lib/format";
+import { CMP_STATUS, dateFr, eur, LINE_STATUS, num, parseNum, QUOTE_STATUS, toNum } from "../lib/format";
 import { Card, Empty, ErrorBox, Field, Markdown, Modal, Notice, PageHeader, Select, Spinner, Tabs } from "../components/ui";
 import { PdfPages } from "./Documents";
 
@@ -267,9 +267,12 @@ export function QuoteReview() {
     setBusy(true);
     try {
       const h = { ...head, company_id: head.company_id || null, quote_date: head.quote_date || null };
-      for (const k of ["delay_days", "validity_days", "declared_ht", "declared_tva", "declared_ttc"]) h[k] = h[k] === "" ? null : parseNum(String(h[k]));
+      const lab: Record<string, string> = { delay_days: "Délai", validity_days: "Validité", declared_ht: "Total HT déclaré", declared_tva: "TVA déclarée", declared_ttc: "Total TTC déclaré" };
+      for (const k of Object.keys(lab)) h[k] = toNum(h[k], lab[k]);
+      const clean = lines.map((l, i) => ({ ...l, quantity: toNum(l.quantity, `Ligne ${i + 1} – quantité`), unit_price: toNum(l.unit_price, `Ligne ${i + 1} – prix unitaire`),
+        total_ht: toNum(l.total_ht, `Ligne ${i + 1} – montant`), vat_rate: toNum(l.vat_rate, `Ligne ${i + 1} – TVA`) }));
       let r = await api.call("PUT", `/api/quotes/${id}`, { ...h, version: q.version });
-      r = await api.call("PUT", `/api/quotes/${id}/lines`, { lines });
+      r = await api.call("PUT", `/api/quotes/${id}/lines`, { lines: clean });
       setData(r);
       toast("Corrections enregistrées – totaux recalculés par le moteur déterministe.");
     } catch (e: any) {

@@ -21,7 +21,49 @@ PHASE_LABELS = {
 }
 
 
-class Strict(BaseModel):
+def _numeric_field(annotation) -> bool:
+    import types
+    import typing
+
+    args = typing.get_args(annotation) if isinstance(annotation, (types.UnionType,)) or typing.get_origin(annotation) is typing.Union else (annotation,)
+    return any(a in (int, float) for a in args)
+
+
+class FrenchNumbers(BaseModel):
+    """Accepte les nombres saisis « à la française » (« 1 250,50 », « 12,5 % ») dans les champs numériques.
+    Une valeur illisible reste refusée avec un message explicite (jamais convertie en silence)."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _fr_numbers(cls, data):
+        if not isinstance(data, dict):
+            return data
+        from ai.document_analysis.numbers import parse_number
+
+        out = dict(data)
+        for name, f in cls.model_fields.items():
+            v = out.get(name)
+            if isinstance(v, str) and _numeric_field(f.annotation):
+                if not v.strip():
+                    out[name] = None
+                    continue
+                raw = v.replace("%", "").strip()
+                # « 47.218 » (point décimal seul) : lecture standard, jamais comme séparateur de milliers
+                n = float(raw) if __import__("re").fullmatch(r"-?\d+\.\d+", raw) else parse_number(raw)
+                if n is None:
+                    raise ValueError(f"{name} : « {v} » n'est pas un nombre valide.")
+                out[name] = int(n) if (int in typing_args(f.annotation) and float not in typing_args(f.annotation) and n == int(n)) else float(n)
+        return out
+
+
+def typing_args(annotation):
+    import types
+    import typing
+
+    return typing.get_args(annotation) if isinstance(annotation, types.UnionType) or typing.get_origin(annotation) is typing.Union else (annotation,)
+
+
+class Strict(FrenchNumbers):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
@@ -40,7 +82,7 @@ class Contact(BaseModel):
     phone: str | None = None
 
 
-class Phase(BaseModel):
+class Phase(FrenchNumbers):
     model_config = ConfigDict(extra="ignore")
     code: str
     label: str | None = None

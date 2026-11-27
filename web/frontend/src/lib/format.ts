@@ -30,10 +30,31 @@ export const startOfWeek = (d: Date) => {
   x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
   return x;
 };
-export const parseNum = (v: string): number | null => {
-  if (v === "" || v === null || v === undefined) return null;
-  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
+/**
+ * Lecture d'un nombre saisi « à la française » : « 1 234,56 », « 1.234,56 », « 1234.56 »,
+ * « 12,5 % », « 3 402,00 € ». Retourne null si la saisie est vide ou invalide (jamais NaN).
+ */
+export const parseNum = (v: unknown): number | null => {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  let s = String(v).trim().replace(/[\s\u00a0\u202f]/g, "").replace(/€|%|eur/gi, "");
+  if (!s || s === "-" || s === "—") return null;
+  if (!/^-?[\d.,]+$/.test(s)) return null;
+  const lc = s.lastIndexOf(","), ld = s.lastIndexOf(".");
+  if (lc >= 0 && ld >= 0) s = lc > ld ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+  else if (lc >= 0) s = (s.match(/,/g) || []).length > 1 ? s.replace(/,/g, "") : s.replace(",", ".");
+  else if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g, "");
+  const n = Number(s);
   return Number.isFinite(n) ? n : null;
+};
+/** Vrai si la saisie est vide ou un nombre valide. */
+export const isNumOrEmpty = (v: unknown) => v === null || v === undefined || String(v).trim() === "" || parseNum(v) !== null;
+/** Convertit une saisie numérique pour l'API : "" → null ; invalide → lève une erreur explicite. */
+export const toNum = (v: unknown, label = "Valeur"): number | null => {
+  if (v === null || v === undefined || String(v).trim() === "") return null;
+  const n = parseNum(v);
+  if (n === null) throw new Error(`${label} : « ${v} » n'est pas un nombre valide (exemples acceptés : 1 250,50 ou 1250.50).`);
+  return n;
 };
 export const bytes = (n: number) => (n < 1024 ? `${n} o` : n < 1048576 ? `${(n / 1024).toFixed(0)} Ko` : `${(n / 1048576).toFixed(1)} Mo`);
 

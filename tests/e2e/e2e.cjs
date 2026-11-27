@@ -123,6 +123,7 @@ async function main() {
     await page.click("button[role=tab]:has-text('Entreprises')");
   }
   await shot(page, "08_annuaire_entreprises");
+  await page.waitForSelector("text=SAS Maçonnerie Durand", { timeout: 8000 }).catch(() => {});
   check("Annuaire : client et entreprises créés", (await page.locator("text=SAS Maçonnerie Durand").count()) > 0);
 
   // ----------------------------------------------------------------- 4. projet
@@ -252,7 +253,7 @@ async function main() {
     const tm = page.locator("[role=dialog]");
     await tm.locator("input").first().fill(name);
     await tm.locator("input[type=date]").fill(today);
-    await tm.locator("input[type=number]").first().fill(dur);
+    await tm.locator("label:has-text('Durée') input").first().fill(dur);
     await tm.locator("select").first().selectOption(act);
     if (name === "Dallage") await shot(page, "28_nouvelle_tache");
     await tm.locator("button:has-text('Enregistrer')").click();

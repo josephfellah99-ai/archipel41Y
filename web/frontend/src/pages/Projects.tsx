@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
-import { dateFr, eur, LOT_STATUS, STATUS_PROJECT } from "../lib/format";
-import { Card, Confirm, Empty, ErrorBox, Field, Modal, PageHeader, Progress, Select, Spinner, Tabs } from "../components/ui";
+import { dateFr, eur, LOT_STATUS, STATUS_PROJECT, toNum } from "../lib/format";
+import { AsyncButton, Card, Confirm, Empty, ErrorBox, Field, Modal, NumberInput, PageHeader, Progress, Select, Spinner, Tabs } from "../components/ui";
 import { DocumentsTable } from "./Documents";
 
 const emptyProject = { code: "", name: "", client_id: "", status: "etude", address: "", postal_code: "", city: "", program: "", description: "",
@@ -13,7 +13,9 @@ const emptyProject = { code: "", name: "", client_id: "", status: "etude", addre
 function clean(o: any) {
   const out: any = {};
   for (const [k, v] of Object.entries(o)) out[k] = v === "" ? null : v;
-  for (const k of ["budget_initial", "surface_m2", "fee_rate", "latitude", "longitude"]) if (out[k] !== null && out[k] !== undefined) out[k] = Number(String(out[k]).replace(",", "."));
+  const labels: Record<string, string> = { budget_initial: "Budget travaux", surface_m2: "Surface", fee_rate: "Taux d'honoraires", latitude: "Latitude", longitude: "Longitude", progress: "Avancement" };
+  for (const k of Object.keys(labels)) if (k in out) out[k] = toNum(out[k], labels[k]);
+  if ("progress" in out && out.progress === null) out.progress = 0;
   return out;
 }
 
@@ -30,9 +32,9 @@ export function ProjectForm({ value, onChange, clients }: { value: any; onChange
       <Field label="Code postal"><input className="input" value={value.postal_code || ""} onChange={set("postal_code")} /></Field>
       <Field label="Commune"><input className="input" value={value.city || ""} onChange={set("city")} /></Field>
       <Field label="Programme"><input className="input" value={value.program || ""} onChange={set("program")} /></Field>
-      <Field label="Surface (m²)"><input className="input" inputMode="decimal" value={value.surface_m2 ?? ""} onChange={set("surface_m2")} /></Field>
-      <Field label="Budget travaux initial (€ HT)"><input className="input" inputMode="decimal" value={value.budget_initial ?? ""} onChange={set("budget_initial")} /></Field>
-      <Field label="Taux d'honoraires (%)"><input className="input" inputMode="decimal" value={value.fee_rate ?? ""} onChange={set("fee_rate")} /></Field>
+      <Field label="Surface (m²)"><NumberInput min={0} suffix="m²" value={value.surface_m2} onChange={(v) => onChange({ ...value, surface_m2: v })} /></Field>
+      <Field label="Budget travaux initial (€ HT)"><NumberInput min={0} suffix="€" value={value.budget_initial} onChange={(v) => onChange({ ...value, budget_initial: v })} /></Field>
+      <Field label="Taux d'honoraires (%)"><NumberInput min={0} max={100} suffix="%" value={value.fee_rate} onChange={(v) => onChange({ ...value, fee_rate: v })} /></Field>
       <Field label="Début"><input className="input" type="date" value={value.start_date || ""} onChange={set("start_date")} /></Field>
       <Field label="Fin prévisionnelle"><input className="input" type="date" value={value.end_date || ""} onChange={set("end_date")} /></Field>
       <Field label="Description" className="sm:col-span-2"><textarea className="input min-h-[80px]" value={value.description || ""} onChange={set("description")} /></Field>
@@ -85,7 +87,7 @@ export function ProjectsList() {
         </table></div>
       )}
       <Modal open={open} onClose={() => setOpen(false)} title="Nouveau projet" wide
-        footer={<><button className="btn-secondary" onClick={() => setOpen(false)}>Annuler</button><button className="btn-primary" onClick={create} disabled={!form.code || !form.name}>Créer le projet</button></>}>
+        footer={<><button className="btn-secondary" onClick={() => setOpen(false)}>Annuler</button><AsyncButton onClick={create} disabled={!form.code?.trim() || !form.name?.trim()}>Créer le projet</AsyncButton></>}>
         <ProjectForm value={form} onChange={setForm} clients={clients.data || []} />
         <p className="text-xs text-muted mt-3">Les phases ESQ, APS, APD, PC, PRO, DCE, ACT, EXE/VISA, DET et AOR sont créées automatiquement ; vous pourrez les adapter à la mission.</p>
       </Modal>
@@ -99,7 +101,11 @@ function Phases({ project, onSave, canEdit }: { project: any; onSave: (patch: an
   useEffect(() => { setPhases(project.phases || []); setCurrent(project.current_phase || ""); }, [project]);
   const upd = (i: number, k: string, v: any) => setPhases(phases.map((p, j) => (j === i ? { ...p, [k]: v } : p)));
   return (
-    <Card title="Phases de la mission" actions={canEdit && <button className="btn-primary" onClick={() => onSave({ phases, current_phase: current || null })}><Save size={15} /> Enregistrer</button>}>
+    <Card title="Phases de la mission" actions={canEdit && <AsyncButton onClick={async () => {
+      let ph;
+      try { ph = phases.map((p) => ({ ...p, progress: toNum(p.progress, `Avancement ${p.code}`) ?? 0 })); } catch (e: any) { alert(e.message); return; }
+      await onSave({ phases: ph, current_phase: current || null });
+    }}><Save size={15} /> Enregistrer</AsyncButton>}>
       <div className="overflow-x-auto"><table className="table">
         <thead><tr><th>Active</th><th>Phase</th><th>Intitulé</th><th>Début</th><th>Fin</th><th>Statut</th><th>Avancement</th><th>En cours</th></tr></thead>
         <tbody>{phases.map((p, i) => (
@@ -109,7 +115,7 @@ function Phases({ project, onSave, canEdit }: { project: any; onSave: (patch: an
             <td><input type="date" className="input py-1" disabled={!canEdit} value={p.start || ""} onChange={(e) => upd(i, "start", e.target.value || null)} /></td>
             <td><input type="date" className="input py-1" disabled={!canEdit} value={p.end || ""} onChange={(e) => upd(i, "end", e.target.value || null)} /></td>
             <td><Select className="py-1" disabled={!canEdit} value={p.status} onChange={(v) => upd(i, "status", v)} options={[{ value: "a_venir", label: "À venir" }, { value: "en_cours", label: "En cours" }, { value: "terminee", label: "Terminée" }]} /></td>
-            <td><input type="number" min={0} max={100} className="input py-1 w-20" disabled={!canEdit} value={p.progress} onChange={(e) => upd(i, "progress", Number(e.target.value))} /></td>
+            <td className="w-24"><NumberInput integer min={0} max={100} className="py-1" disabled={!canEdit} value={p.progress} onChange={(v) => upd(i, "progress", v)} aria-label={`Avancement ${p.code}`} /></td>
             <td><input type="radio" name="current" disabled={!canEdit || !p.enabled} checked={current === p.code} onChange={() => setCurrent(p.code)} aria-label={`Phase en cours ${p.code}`} /></td>
           </tr>))}</tbody>
       </table></div>
@@ -123,7 +129,7 @@ function Lots({ projectId, companies }: { projectId: string; companies: any[] })
   const [edit, setEdit] = useState<any>(null);
   const save = async () => {
     try {
-      const body = { ...edit, project_id: projectId, budget: edit.budget === "" ? null : Number(edit.budget), contract_amount: edit.contract_amount === "" ? null : Number(edit.contract_amount), company_id: edit.company_id || null, progress: Number(edit.progress || 0) };
+      const body = { ...edit, project_id: projectId, budget: toNum(edit.budget, "Budget"), contract_amount: toNum(edit.contract_amount, "Montant du marché"), company_id: edit.company_id || null, progress: toNum(edit.progress, "Avancement") ?? 0 };
       if (edit.id) await api.put(`/api/lots/${edit.id}`, body, `Lot ${edit.code}`);
       else await api.post("/api/lots", body, `Lot ${edit.code}`);
       setEdit(null); toast("Lot enregistré."); reload();
@@ -143,16 +149,16 @@ function Lots({ projectId, companies }: { projectId: string; companies: any[] })
         </table></div>
       )}
       <Modal open={!!edit} onClose={() => setEdit(null)} title={edit?.id ? `Lot ${edit.code}` : "Nouveau lot"}
-        footer={<>{edit?.id && perms.delete && <button className="btn-ghost text-danger mr-auto" onClick={async () => { await api.del(`/api/lots/${edit.id}`); setEdit(null); reload(); }}><Trash2 size={15} /> Supprimer</button>}
-          <button className="btn-secondary" onClick={() => setEdit(null)}>Annuler</button><button className="btn-primary" onClick={save}>Enregistrer</button></>}>
+        footer={<>{edit?.id && perms.delete && <button className="btn-ghost text-danger mr-auto" onClick={async () => { try { await api.del(`/api/lots/${edit.id}`); setEdit(null); reload(); } catch (e) { toastError(e); } }}><Trash2 size={15} /> Supprimer</button>}
+          <button className="btn-secondary" onClick={() => setEdit(null)}>Annuler</button><AsyncButton onClick={save} disabled={!edit?.code?.trim() || !edit?.name?.trim()}>Enregistrer</AsyncButton></>}>
         {edit && <div className="grid sm:grid-cols-2 gap-3">
           <Field label="N° de lot *"><input className="input" value={edit.code} onChange={(e) => setEdit({ ...edit, code: e.target.value })} /></Field>
           <Field label="Statut"><Select value={edit.status} onChange={(v) => setEdit({ ...edit, status: v })} options={Object.entries(LOT_STATUS).map(([v, l]) => ({ value: v, label: l }))} /></Field>
           <Field label="Désignation *" className="sm:col-span-2"><input className="input" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></Field>
           <Field label="Entreprise attributaire" className="sm:col-span-2"><Select value={edit.company_id} onChange={(v) => setEdit({ ...edit, company_id: v })} placeholder="— Non attribué —" options={companies.map((c) => ({ value: c.id, label: c.name }))} /></Field>
-          <Field label="Budget (€ HT)"><input className="input" inputMode="decimal" value={edit.budget} onChange={(e) => setEdit({ ...edit, budget: e.target.value })} /></Field>
-          <Field label="Montant du marché (€ HT)"><input className="input" inputMode="decimal" value={edit.contract_amount} onChange={(e) => setEdit({ ...edit, contract_amount: e.target.value })} /></Field>
-          <Field label="Avancement (%)"><input className="input" type="number" min={0} max={100} value={edit.progress} onChange={(e) => setEdit({ ...edit, progress: e.target.value })} /></Field>
+          <Field label="Budget (€ HT)"><NumberInput min={0} suffix="€" value={edit.budget} onChange={(v) => setEdit({ ...edit, budget: v })} /></Field>
+          <Field label="Montant du marché (€ HT)"><NumberInput min={0} suffix="€" value={edit.contract_amount} onChange={(v) => setEdit({ ...edit, contract_amount: v })} /></Field>
+          <Field label="Avancement (%)"><NumberInput integer min={0} max={100} suffix="%" value={edit.progress} onChange={(v) => setEdit({ ...edit, progress: v })} /></Field>
         </div>}
       </Modal>
     </Card>
@@ -180,7 +186,7 @@ function Incidents({ projectId, incidents, reload }: { projectId: string; incide
               {i.description && <div className="text-sm text-ink/80 mt-1">{i.description}</div>}{i.resolution && <div className="text-xs text-ok mt-1">Résolution : {i.resolution}</div>}</div>
           </li>))}</ul>
       )}
-      <Modal open={!!edit} onClose={() => setEdit(null)} title="Incident" footer={<><button className="btn-secondary" onClick={() => setEdit(null)}>Annuler</button><button className="btn-primary" onClick={save}>Enregistrer</button></>}>
+      <Modal open={!!edit} onClose={() => setEdit(null)} title="Incident" footer={<><button className="btn-secondary" onClick={() => setEdit(null)}>Annuler</button><AsyncButton onClick={save} disabled={!edit?.title?.trim() || !edit?.date}>Enregistrer</AsyncButton></>}>
         {edit && <div className="grid sm:grid-cols-2 gap-3">
           <Field label="Date"><input className="input" type="date" value={edit.date} onChange={(e) => setEdit({ ...edit, date: e.target.value })} /></Field>
           <Field label="Gravité"><Select value={edit.severity} onChange={(v) => setEdit({ ...edit, severity: v })} options={["faible", "moyenne", "haute", "critique"].map((v) => ({ value: v, label: v }))} /></Field>
@@ -200,7 +206,7 @@ function Team({ project, users, onSave, canEdit }: { project: any; users: any[];
   const free = users.filter((u) => !team.some((m) => m.user_id === u.id));
   const name = Object.fromEntries(users.map((u) => [u.id, u]));
   return (
-    <Card title="Équipe affectée" actions={canEdit && <button className="btn-primary" onClick={() => onSave({ team })}><Save size={15} /> Enregistrer</button>}>
+    <Card title="Équipe affectée" actions={canEdit && <AsyncButton onClick={() => onSave({ team })}><Save size={15} /> Enregistrer</AsyncButton>}>
       <ul className="divide-y divide-line">{team.map((m, i) => (
         <li key={m.user_id} className="py-2 flex items-center gap-3">
           <div className="h-8 w-8 rounded-full text-white text-xs flex items-center justify-center" style={{ background: name[m.user_id]?.color || "#718578" }}>{name[m.user_id]?.full_name?.split(" ").map((s: string) => s[0]).join("")}</div>
@@ -222,11 +228,11 @@ function Terrain({ project, onSave, canEdit }: { project: any; onSave: (p: any) 
   return (
     <Card title="Informations du terrain" actions={<>
       <Link to="/urbanisme" className="btn-secondary"><ExternalLink size={14} /> Analyser la parcelle</Link>
-      {canEdit && <button className="btn-primary" onClick={() => onSave({ terrain: t, latitude: coords.latitude === "" ? null : Number(coords.latitude), longitude: coords.longitude === "" ? null : Number(coords.longitude) })}><Save size={15} /> Enregistrer</button>}</>}>
+      {canEdit && <AsyncButton onClick={() => onSave({ terrain: t, latitude: coords.latitude, longitude: coords.longitude })}><Save size={15} /> Enregistrer</AsyncButton>}</>}>
       <div className="grid sm:grid-cols-2 gap-3">
         {fields.map(([k, l]) => <Field key={k} label={l}><input className="input" disabled={!canEdit} value={t[k] ?? ""} onChange={(e) => setT({ ...t, [k]: e.target.value })} /></Field>)}
-        <Field label="Latitude (WGS84)" hint="Renseignée automatiquement par l'analyse urbanistique ou la météo."><input className="input" disabled={!canEdit} value={coords.latitude} onChange={(e) => setCoords({ ...coords, latitude: e.target.value })} /></Field>
-        <Field label="Longitude (WGS84)"><input className="input" disabled={!canEdit} value={coords.longitude} onChange={(e) => setCoords({ ...coords, longitude: e.target.value })} /></Field>
+        <Field label="Latitude (WGS84)" hint="Ex. 47,2184 — renseignée automatiquement par l'analyse urbanistique ou la météo."><NumberInput min={-90} max={90} disabled={!canEdit} value={coords.latitude} onChange={(v) => setCoords({ ...coords, latitude: v })} /></Field>
+        <Field label="Longitude (WGS84)" hint="Ex. -1,5536"><NumberInput min={-180} max={180} disabled={!canEdit} value={coords.longitude} onChange={(v) => setCoords({ ...coords, longitude: v })} /></Field>
       </div>
     </Card>
   );
@@ -251,9 +257,9 @@ export function ProjectDetail() {
       toast(r.__queued ? "Modification enregistrée hors ligne." : "Projet enregistré.");
       reload(); reloadProjects();
     } catch (e: any) {
-      if (e.status === 409) toast("Conflit : ce projet a été modifié par un autre utilisateur. La version actuelle a été rechargée.", "error");
+      // En cas d'échec, la saisie est conservée : seul un conflit de version recharge la fiche.
+      if (e.status === 409) { toast("Conflit : ce projet a été modifié par un autre utilisateur. La version actuelle a été rechargée.", "error"); reload(); }
       else toastError(e);
-      reload();
     }
   };
   if (loading && !data) return <Spinner />;
@@ -278,9 +284,9 @@ export function ProjectDetail() {
         { id: "terrain", label: "Terrain" }, { id: "equipe", label: `Équipe (${data.team.length})` }, { id: "incidents", label: `Incidents (${data.incidents.length})` },
         { id: "documents", label: `Documents (${data.counts.documents})` }]} />
       {tab === "synthese" && form && (
-        <Card title="Fiche projet" actions={perms.write && <button className="btn-primary" onClick={() => save(form)}><Save size={15} /> Enregistrer</button>}>
+        <Card title="Fiche projet" actions={perms.write && <AsyncButton onClick={() => save(form)} disabled={!form.code?.trim() || !form.name?.trim()}><Save size={15} /> Enregistrer</AsyncButton>}>
           <ProjectForm value={form} onChange={setForm} clients={clients.data || []} />
-          <div className="grid sm:grid-cols-2 gap-3 mt-3"><Field label="Avancement global (%)"><input className="input" type="number" min={0} max={100} value={form.progress} onChange={(e) => setForm({ ...form, progress: Number(e.target.value) })} /></Field></div>
+          <div className="grid sm:grid-cols-2 gap-3 mt-3"><Field label="Avancement global (%)"><NumberInput integer min={0} max={100} suffix="%" value={form.progress} onChange={(v) => setForm({ ...form, progress: v })} /></Field></div>
           {data.companies.length > 0 && <div className="mt-4 text-sm"><span className="text-muted">Entreprises suivies : </span>{data.companies.join(" · ")}</div>}
         </Card>
       )}

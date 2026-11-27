@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { api, download } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
 import { addDays, EVENT_COLORS, EVENT_KINDS, isoDate, startOfWeek, timeFr } from "../lib/format";
-import { Field, Markdown, Modal, Notice, PageHeader, Select, Spinner } from "../components/ui";
+import { AsyncButton, Field, Markdown, Modal, Notice, PageHeader, Select, Spinner } from "../components/ui";
 
 type View = "jour" | "semaine" | "mois";
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7h → 19h
@@ -23,10 +23,13 @@ function EventModal({ ev, onClose, onSaved }: { ev: any; onClose: () => void; on
   const [summary, setSummary] = useState<string | null>(null);
   const [extName, setExtName] = useState("");
   const canEdit = perms.write;
+  const valid = (v: string) => !!v && !Number.isNaN(new Date(v).getTime());
+  const dateError = !valid(f.start) ? "Date et heure de début à renseigner." : !valid(f.end) ? "Date et heure de fin à renseigner."
+    : new Date(f.end) <= new Date(f.start) ? "La fin doit être postérieure au début." : null;
   const payload = () => ({ ...f, start: new Date(f.start).toISOString(), end: new Date(f.end).toISOString(), project_id: f.project_id || null,
     reminder_minutes: f.reminder_minutes === "" || f.reminder_minutes === null ? null : Number(f.reminder_minutes) });
   useEffect(() => {
-    if (!f.start || !f.end) return;
+    if (!valid(f.start) || !valid(f.end)) return;
     const t = setTimeout(() => {
       const p = payload();
       api.call("POST", "/api/events/check", { start: p.start, end: p.end, participants: p.participants, organizer_id: p.organizer_id || user?.id, exclude_id: f.id })
@@ -37,6 +40,7 @@ function EventModal({ ev, onClose, onSaved }: { ev: any; onClose: () => void; on
   }, [f.start, f.end, f.participants]);
   const save = async () => {
     try {
+      if (dateError) throw new Error(dateError);
       const p = payload();
       const r = f.id ? await api.put(`/api/events/${f.id}`, { ...p, version: ev.version }, `RDV ${f.title}`) : await api.post("/api/events", p, `RDV ${f.title}`);
       if (r.__queued) toast("Rendez-vous enregistré hors ligne.", "info");
@@ -61,15 +65,15 @@ function EventModal({ ev, onClose, onSaved }: { ev: any; onClose: () => void; on
       {f.id && perms.write && <button className="btn-ghost text-danger mr-auto" onClick={async () => { try { await api.del(`/api/events/${f.id}`); onSaved(); onClose(); } catch (e) { toastError(e); } }}><Trash2 size={15} /> Supprimer</button>}
       {f.id && <button className="btn-secondary" onClick={async () => { try { const r = await api.call("POST", "/api/reports", { kind: "compte_rendu", fmt: "pdf", event_id: f.id }); await download(r.download_url); } catch (e) { toastError(e); } }}><FileText size={15} /> Compte rendu PDF</button>}
       <button className="btn-secondary" onClick={onClose}>Fermer</button>
-      {canEdit && <button className="btn-primary" onClick={save} disabled={!f.title}>Enregistrer</button>}</>}>
+      {canEdit && <AsyncButton onClick={save} disabled={!f.title?.trim() || !!dateError}>Enregistrer</AsyncButton>}</>}>
       {conflicts.length > 0 && <div className="mb-4"><Notice tone="warn"><div className="flex items-center gap-2 font-medium"><AlertTriangle size={15} /> Conflit d'agenda détecté</div>
         <ul className="list-disc pl-5 mt-1">{conflicts.map((c) => <li key={c.event_id}>{c.title} ({new Date(c.start).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}) – {c.participants.join(", ")}</li>)}</ul></Notice></div>}
       <div className="grid sm:grid-cols-2 gap-3">
         <Field label="Objet *" className="sm:col-span-2"><input className="input" disabled={!canEdit} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
         <Field label="Type"><Select disabled={!canEdit} value={f.kind} onChange={(v) => setF({ ...f, kind: v })} options={Object.entries(EVENT_KINDS).map(([v, l]) => ({ value: v, label: l }))} /></Field>
         <Field label="Projet"><Select disabled={!canEdit} value={f.project_id || ""} onChange={(v) => setF({ ...f, project_id: v })} placeholder="— Aucun —" options={projects.map((p) => ({ value: p.id, label: `${p.code} – ${p.name}` }))} /></Field>
-        <Field label="Début"><input className="input" type="datetime-local" disabled={!canEdit} value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} /></Field>
-        <Field label="Fin"><input className="input" type="datetime-local" disabled={!canEdit} value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} /></Field>
+        <Field label="Début" required><input className="input" type="datetime-local" disabled={!canEdit} value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} /></Field>
+        <Field label="Fin" required error={valid(f.start) && dateError ? dateError : null}><input className="input" type="datetime-local" disabled={!canEdit} value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} /></Field>
         <Field label="Lieu"><input className="input" disabled={!canEdit} value={f.location || ""} onChange={(e) => setF({ ...f, location: e.target.value })} /></Field>
         <Field label="Rappel"><Select disabled={!canEdit} value={f.reminder_minutes === null || f.reminder_minutes === undefined ? "" : String(f.reminder_minutes)} onChange={(v) => setF({ ...f, reminder_minutes: v })}
           placeholder="Aucun rappel" options={[["10", "10 minutes avant"], ["30", "30 minutes avant"], ["60", "1 heure avant"], ["1440", "La veille"]].map(([v, l]) => ({ value: v, label: l }))} /></Field>

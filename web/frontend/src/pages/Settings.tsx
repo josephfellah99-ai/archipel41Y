@@ -2,8 +2,8 @@ import { Settings as Cog, Plus, Save, Plug, Download, Upload, RefreshCw, ShieldC
 import { useEffect, useRef, useState } from "react";
 import { api, conflictItems, download, dropConflict, flushOutbox, outboxItems } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
-import { bytes, dateTimeFr, ROLE_LABELS } from "../lib/format";
-import { Card, Empty, ErrorBox, Field, Modal, Notice, PageHeader, Select, Spinner, Tabs } from "../components/ui";
+import { bytes, dateTimeFr, ROLE_LABELS, toNum } from "../lib/format";
+import { AsyncButton, Card, Empty, ErrorBox, Field, Modal, Notice, NumberInput, PageHeader, Select, Spinner, Tabs } from "../components/ui";
 
 function useSetting(key: string) {
   const s = useApi<any>(`/api/settings/${key}`);
@@ -12,8 +12,8 @@ function useSetting(key: string) {
   return { v, setV, reload: s.reload, loading: s.loading };
 }
 
-function SaveBar({ onSave, onTest, busy }: { onSave: () => void; onTest?: () => void; busy?: boolean }) {
-  return <div className="flex gap-2 mt-4">{onTest && <button className="btn-secondary" onClick={onTest} disabled={busy}><Plug size={15} /> Tester la connexion</button>}<button className="btn-primary" onClick={onSave} disabled={busy}><Save size={15} /> Enregistrer</button></div>;
+function SaveBar({ onSave, onTest, busy }: { onSave: () => Promise<any> | void; onTest?: () => Promise<any> | void; busy?: boolean }) {
+  return <div className="flex gap-2 mt-4">{onTest && <AsyncButton className="btn-secondary" onClick={onTest} disabled={busy}><Plug size={15} /> Tester la connexion</AsyncButton>}<AsyncButton onClick={onSave} disabled={busy}><Save size={15} /> Enregistrer</AsyncButton></div>;
 }
 
 function Secret({ label, value, isSet, onChange, hint }: { label: string; value: string; isSet: boolean; onChange: (v: string) => void; hint?: string }) {
@@ -65,7 +65,7 @@ function UsersTab() {
           <tbody>{Object.entries(PERM_LABELS).map(([p, l]) => <tr key={p}><td>{l}</td>{(roles.data || []).map((r) => <td key={r.code} className="text-center">{r.permissions.includes(p) ? <Check size={15} className="inline text-ok" /> : "—"}</td>)}</tr>)}</tbody></table></div>
         <p className="text-xs text-muted mt-3">Les projets marqués « confidentiels » ne sont visibles que de leur équipe, des chefs de projet et des administrateurs. Les données de chaque agence sont strictement isolées.</p>
       </Card>
-      <Modal open={!!edit} onClose={() => setEdit(null)} title={edit?.id ? edit.full_name : "Nouvel utilisateur"} footer={<><button className="btn-secondary" onClick={() => setEdit(null)}>Annuler</button><button className="btn-primary" onClick={save}>Enregistrer</button></>}>
+      <Modal open={!!edit} onClose={() => setEdit(null)} title={edit?.id ? edit.full_name : "Nouvel utilisateur"} footer={<><button className="btn-secondary" onClick={() => setEdit(null)}>Annuler</button><AsyncButton onClick={save} disabled={!edit?.full_name?.trim() || !edit?.email?.trim() || (!edit?.id && !edit?.password)}>Enregistrer</AsyncButton></>}>
         {edit && <div className="grid sm:grid-cols-2 gap-3">
           <Field label="Nom complet *"><input className="input" value={edit.full_name} onChange={(e) => setEdit({ ...edit, full_name: e.target.value })} /></Field>
           <Field label="E-mail *"><input className="input" type="email" disabled={!!edit.id} value={edit.email} onChange={(e) => setEdit({ ...edit, email: e.target.value })} /></Field>
@@ -149,7 +149,7 @@ function SyncTab() {
   const { mode, perms, toast, toastError } = useApp();
   const st = useApi<any>("/api/sync/status");
   const conflicts = useApi<any[]>("/api/sync/conflicts");
-  const [f, setF] = useState({ server_url: "", email: "", password: "", interval_minutes: 5 });
+  const [f, setF] = useState<any>({ server_url: "", email: "", password: "", interval_minutes: "5" });
   const [local, setLocal] = useState<{ out: any[]; conf: any[] }>({ out: [], conf: [] });
   const loadLocal = async () => setLocal({ out: await outboxItems(), conf: await conflictItems() });
   useEffect(() => { loadLocal(); }, []);
@@ -173,10 +173,10 @@ function SyncTab() {
             {s.last_error && <><dt className="text-muted">Dernier message</dt><dd className="text-warn">{s.last_error}</dd></>}</dl>}
           {perms.admin && <div className="grid sm:grid-cols-2 gap-3">
             <Field label="Adresse du serveur" hint="ex. https://archipel41.monagence.fr"><input className="input" value={f.server_url} onChange={(e) => setF({ ...f, server_url: e.target.value })} /></Field>
-            <Field label="Intervalle (minutes)"><input className="input" type="number" min={1} value={f.interval_minutes} onChange={(e) => setF({ ...f, interval_minutes: Number(e.target.value) })} /></Field>
+            <Field label="Intervalle (minutes)"><NumberInput integer min={1} value={f.interval_minutes} onChange={(v) => setF({ ...f, interval_minutes: v })} /></Field>
             <Field label="E-mail (compte serveur)"><input className="input" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
             <Field label="Mot de passe (compte serveur)"><input className="input" type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field>
-            <div className="sm:col-span-2"><button className="btn-primary" onClick={async () => { try { const r = await api.call("POST", "/api/sync/configure", f); toast(r.message); st.reload(); } catch (e) { toastError(e); } }}>Raccorder ce poste</button></div>
+            <div className="sm:col-span-2"><AsyncButton onClick={async () => { try { const r = await api.call("POST", "/api/sync/configure", { ...f, interval_minutes: toNum(f.interval_minutes, "Intervalle") ?? 15 }); toast(r.message); st.reload(); } catch (e) { toastError(e); } }}>Raccorder ce poste</AsyncButton></div>
           </div>}
         </Card>
       )}
