@@ -1,11 +1,12 @@
 import {
   LayoutDashboard, FolderKanban, CalendarDays, GanttChartSquare, Map, Sparkles, Files, Users, Wallet, FileText,
   Settings, Search, Moon, Sun, LogOut, Menu, X, Wifi, WifiOff, RefreshCw, Bell, AlertTriangle, ChevronDown, HardHat, Scale, History,
-  Contact, CheckCheck,
+  Contact, CheckCheck, HelpCircle, BookOpen,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { api, conflictItems, flushOutbox, offline, onSyncChange, outboxItems } from "../lib/api";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { api, blobUrl, conflictItems, flushOutbox, offline, onSyncChange, outboxItems } from "../lib/api";
+import { helpFor } from "../lib/help";
 import { canModule, useApp, type Perms } from "../lib/app";
 import { dateTimeFr } from "../lib/format";
 import logo from "../logo.svg";
@@ -171,6 +172,51 @@ function Notifications() {
   );
 }
 
+/** Aide contextuelle de l'écran affiché, avec accès au guide pratique embarqué. */
+function HelpPanel() {
+  const { toastError } = useApp();
+  const loc = useLocation();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const h = helpFor(loc.pathname);
+  useEffect(() => { setOpen(false); }, [loc.pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", close); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const guide = async () => {
+    try {
+      const u = await blobUrl("/api/guides/guide-pratique");
+      const desktop = (window as any).archipelDesktop;
+      if (desktop?.openFile) { const b = new Uint8Array(await (await fetch(u)).arrayBuffer()); await desktop.openFile("ARCHIPEL41_GUIDE_PRATIQUE.pdf", b); }
+      else window.open(u, "_blank", "noopener");
+    } catch (e) { toastError(e); }
+  };
+  return (
+    <div className="relative" ref={ref}>
+      <button className="btn-ghost h-8 w-8 p-0" aria-label="Aide sur cet écran" title="Aide sur cet écran" aria-expanded={open} onClick={() => setOpen(!open)}><HelpCircle size={16} /></button>
+      {open && (
+        <div role="dialog" aria-label={`Aide — ${h.title}`} className="absolute right-0 top-10 z-[60] w-[min(92vw,400px)] card shadow-xl">
+          <div className="px-4 pt-3 pb-2 border-b border-line">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted">Aide{h.n ? ` · ${h.n}` : ""}</div>
+            <div className="text-base font-semibold">{h.title}</div>
+            <div className="text-sm text-muted mt-0.5">{h.but}</div>
+          </div>
+          <div className="px-4 py-3 space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin text-sm">
+            <div><div className="text-[11px] uppercase tracking-wider text-muted mb-1">Comment faire</div>
+              <ol className="list-decimal pl-5 space-y-1">{h.etapes.map((x, i) => <li key={i}>{x}</li>)}</ol></div>
+            {h.savoir && h.savoir.length > 0 && <div><div className="text-[11px] uppercase tracking-wider text-muted mb-1">Bon à savoir</div>
+              <ul className="space-y-1">{h.savoir.map((x, i) => <li key={i} className="pl-3 relative before:absolute before:left-0 before:top-2 before:h-1 before:w-1.5 before:bg-danger">{x}</li>)}</ul></div>}
+          </div>
+          <div className="px-4 py-2.5 border-t border-line"><button className="text-sm text-sage flex items-center gap-1.5" onClick={guide}><BookOpen size={14} /> Ouvrir le guide pratique complet</button></div>
+        </div>)}
+    </div>
+  );
+}
+
 export function Layout({ children }: { children: ReactNode }) {
   const { user, agency, logout, theme, toggleTheme, setAssistantOpen, perms } = useApp();
   const [mobile, setMobile] = useState(false);
@@ -235,7 +281,7 @@ export function Layout({ children }: { children: ReactNode }) {
             ESPACE DE DÉMONSTRATION – données entièrement fictives, séparées de vos données réelles
           </div>
         )}
-        <header className="h-14 shrink-0 border-b border-line bg-surface/80 backdrop-blur flex items-center gap-2 px-3 sm:px-5 no-print">
+        <header className="relative z-40 h-14 shrink-0 border-b border-line bg-surface/80 backdrop-blur flex items-center gap-2 px-3 sm:px-5 no-print">
           <button className="btn-ghost p-1.5 lg:hidden" onClick={() => setMobile(true)} aria-label="Menu"><Menu size={19} /></button>
           <ProjectPicker />
           <form className="flex-1 max-w-md relative" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav(`/recherche?q=${encodeURIComponent(q.trim())}`); }}>
@@ -244,6 +290,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </form>
           <div className="flex-1" />
           <ConnectionBadge />
+          <HelpPanel />
           <Notifications />
           <button className="btn-ghost h-8 w-8 p-0" onClick={toggleTheme} title={theme === "dark" ? "Mode clair" : "Mode sombre"}>
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}

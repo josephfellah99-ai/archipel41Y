@@ -1,0 +1,44 @@
+[
+ {
+  "suite": "e2e.cjs",
+  "label": "parcours complet, hors connexion, responsive",
+  "ok": 28,
+  "total": 28,
+  "date": "2026-11-27 13:33"
+ },
+ {
+  "suite": "forms.cjs",
+  "label": "fiabilité des formulaires",
+  "ok": 25,
+  "total": 25,
+  "date": "2026-11-27 13:36"
+ },
+ {
+  "suite": "access.cjs",
+  "label": "connexion, rôles, autorisations, invités",
+  "ok": 20,
+  "total": 20,
+  "date": "2026-11-27 13:36"
+ },
+ {
+  "suite": "history.cjs",
+  "label": "historique, diagnostic, aperçu PDF",
+  "ok": 10,
+  "total": 10,
+  "date": "2026-11-27 13:36"
+ },
+ {
+  "suite": "terrain.cjs",
+  "label": "terrain et cartographie",
+  "ok": 21,
+  "total": 21,
+  "date": "2026-11-27 13:36"
+ },
+ {
+  "suite": "documents.cjs",
+  "label": "bibliothèque documentaire, visionneuses, annotations, aide",
+  "ok": 25,
+  "total": 25,
+  "date": "2026-11-27 13:37"
+ }
+]

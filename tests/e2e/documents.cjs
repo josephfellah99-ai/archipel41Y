@@ -242,6 +242,16 @@ shutil.copy(demo / "CCTP_Lot02_GrosOeuvre.pdf", d / "CCTP Lot 02 Gros oeuvre.pdf
   const t = (await api(page, "GET", `/api/documents/tree?project_id=${p.id}`)).data;
   check("Dossier propre au projet ajouté à l'arborescence", t.folders.some((f) => f.custom && f.path.endsWith("Lot 03 - Charpente")) && t.unfiled === 5);
 
+  // ---------------------------------------------------------- aide contextuelle
+  await page.click("button[aria-label='Aide sur cet écran']");
+  await page.waitForSelector("[role=dialog][aria-label^='Aide']");
+  const help = await page.locator("[role=dialog][aria-label^='Aide']").textContent();
+  check("Aide contextuelle de l'écran Documents (conventions de l'agence rappelées)", help.includes("Documents") && help.includes("AAAA-MM-JJ") && help.includes("jamais écrasé"));
+  await shot(page, "88_aide_contextuelle");
+  const guide = await page.evaluate(async () => { const r = await fetch("/api/guides/guide-pratique", { headers: { Authorization: "Bearer " + localStorage.getItem("a41.token") } }); return { s: r.status, t: r.headers.get("content-type") }; });
+  check("Guide pratique embarqué accessible depuis l'aide", guide.s === 200 && guide.t === "application/pdf");
+  await page.keyboard.press("Escape");
+
   check("Moteur toujours disponible", await healthy());
   check("Aucune erreur JavaScript", errors.length === 0, errors.slice(0, 3).join(" | "));
   await browser.close();

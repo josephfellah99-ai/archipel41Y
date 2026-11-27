@@ -152,7 +152,7 @@ class G:
             f'<div class="row{" sub" if lvl == 2 else ""}"><span class="n">{num}</span><span>{H.escape(t)}</span><span class="p" data-toc="{sid}"></span></div>'
             for lvl, num, t, sid in self.toc)
         cover = f"""<section class="cover"><div class="grid"></div><div class="bar"></div>
-<div class="kicker">Archipel41<br>Guide pratique<br>Version 1.0</div>
+<div class="kicker">Archipel41<br>Guide pratique<br>Version 1.2</div>
 <h1>Archipel41.<br>Mode<br>d'emploi.</h1>
 <div class="lead">Utiliser l'application, partie par partie, et tirer le meilleur de chacune de ses fonctions — pour l'agence d'architecture.</div>
 <div class="meta"><div><b>Édition</b>{today}</div><div><b>Public</b>Architectes, chefs de projet, collaborateurs</div><div><b>Plateformes</b>Windows · navigateur · tablette · smartphone</div></div></section>"""
@@ -174,19 +174,22 @@ def build() -> G:
         ["<b>Des chiffres exacts</b>", "Totaux, TVA et arrondis sont recalculés par un moteur de calcul, jamais par l'intelligence artificielle."],
         ["<b>Rien d'inventé</b>", "Une information absente est signalée comme telle ; chaque réponse cite sa source."],
     ]))
-    g.block("Les 11 parties", g.table(["Chap.", "Partie", "Sert à"], [
+    g.block("Les parties", g.table(["Chap.", "Partie", "Sert à"], [
         ["04", "Tableau de bord", "Voir en une minute ce qui demande une action"],
         ["05", "Projets et chantiers", "Tout savoir d'une opération, de l'esquisse à la réception"],
         ["06", "Devis et comparateur", "Lire, contrôler et comparer les offres des entreprises"],
-        ["07", "Agenda", "Organiser rendez-vous, réunions et visites"],
+        ["07", "Agenda", "Organiser rendez-vous et réunions, synchronisés avec Outlook ou Google"],
         ["08", "Planning et météo", "Ordonner le chantier et anticiper les intempéries"],
         ["09", "Urbanisme", "Connaître les contraintes d'un terrain"],
         ["10", "Assistant IA", "Interroger documents et projets en langage courant"],
-        ["11", "Documents", "Classer, versionner, retrouver toutes les pièces"],
-        ["12", "Clients et entreprises", "Tenir l'annuaire et l'historique des relations"],
-        ["13", "Finances", "Suivre budgets, marchés, factures et paiements"],
-        ["14", "Rapports", "Produire des documents prêts à envoyer"],
-    ]))
+        ["11", "Documents", "Classer dans l'arborescence de l'agence, consulter, annoter, versionner"],
+        ["12", "Terrain et cartographie", "Voir, mesurer et annoter le terrain ; importer les données du géomètre"],
+        ["13", "Clients et entreprises", "Tenir l'annuaire et l'historique des relations"],
+        ["14", "Finances", "Suivre budgets, marchés, factures et paiements"],
+        ["15", "Rapports", "Produire des documents prêts à envoyer"],
+        ["16", "Équipe, invités et échanges", "Rôles, autorisations, invitations, commentaires, notifications"],
+        ["17", "Historique et diagnostic", "Qui a fait quoi ; connexions ; erreurs ; intégrité du journal"],
+    ]) + "<p>Sur chaque écran, le bouton <b>?</b> en haut à droite ouvre une aide courte propre à cet écran, avec un lien vers ce guide.</p>")
     g.block("Sans IA, avec IA", "<p>Archipel41 fonctionne entièrement <b>sans</b> fournisseur d'intelligence artificielle : extraction des devis par règles, "
             "recherche dans vos documents, conclusions automatiques. Un fournisseur configuré (Claude, Mistral, OpenAI ou un modèle local) ajoute "
             "la rédaction : conclusions argumentées, synthèses, réponses de l'assistant.</p>")
@@ -194,7 +197,7 @@ def build() -> G:
 
     # ================================================================ 02
     g.chap("Premiers pas", "Installer, ouvrir, s'orienter. Dix minutes suffisent.")
-    g.block("Installer", g.ol("Lancez <b>Archipel41-Setup-1.0.0-x64.exe</b>. Si Windows affiche « Windows a protégé votre ordinateur » : <b>Informations complémentaires</b>, puis <b>Exécuter quand même</b>.",
+    g.block("Installer", g.ol("Lancez <b>Archipel41-Setup-1.2.0-x64.exe</b>. Si Windows affiche « Windows a protégé votre ordinateur » : <b>Informations complémentaires</b>, puis <b>Exécuter quand même</b>.",
                               "Acceptez les conditions, choisissez <b>Pour moi uniquement</b>, puis <b>Installer</b>.",
                               "Ouvrez Archipel41 depuis l'icône du Bureau. Le premier démarrage prend une vingtaine de secondes."))
     g.block("Choisir", g.ol("<b>Explorer la démonstration</b> : une agence fictive complète pour découvrir sans rien saisir.",
@@ -252,9 +255,9 @@ def build() -> G:
     module("Projets et chantiers", "La fiche unique de chaque opération.",
            "<p>Maître d'ouvrage, équipe, phases de la mission (ESQ, APS, APD, PC, PRO, DCE, ACT, EXE/VISA, DET, AOR), terrain, lots, entreprises, "
            "échéances, incidents, documents et avancement.</p>",
-           g.ol("<b>Nouveau projet</b> : code, nom, maître d'ouvrage, adresse, surface, budget.",
+           g.ol("<b>Nouveau projet</b> : code (année – numéro – ville – affaire), nom, maître d'ouvrage, adresse, surface, budget.",
                 "Onglet <b>Phases</b> : désactivez celles hors mission, datez les autres, cochez la phase en cours.",
-                "Onglet <b>Lots</b> : un lot par corps d'état, avec budget et entreprise attributaire.",
+                "Onglet <b>Lots</b> : les lots sont <b>libres</b> — numérotez-les, renommez-les, réorganisez-les selon le projet ; budget et entreprise attributaire par lot.",
                 "Onglets <b>Terrain</b>, <b>Équipe</b>, <b>Incidents</b>, <b>Documents</b> : complétez au fil de l'eau."),
            g.ul("Cochez <b>Projet confidentiel</b> pour un dossier sensible : seule son équipe le voit, et il n'est jamais envoyé à une IA externe sans autorisation.",
                 "Tenez la phase en cours et l'avancement à jour : ils alimentent le tableau de bord.",
@@ -311,7 +314,11 @@ def build() -> G:
            g.ul("Rattachez chaque rendez-vous à son projet : il nourrit la fiche projet et l'assistant.",
                 "Notez dans le compte rendu qui fait quoi et pour quand : la synthèse en extrait les actions."),
            [("26_agenda_semaine", "La vue semaine."), ("25_conflit_agenda", "Un conflit détecté avant enregistrement.")],
-           "L'agenda n'est pas encore synchronisé avec Outlook ou Google Agenda.")
+           "La synchronisation demande une application déclarée chez Microsoft ou Google (identifiants fournis par votre prestataire) et une connexion Internet.",
+           extra=[("Outlook et Google", "<p><b>Paramètres › Agendas</b> : connectez un compte Microsoft 365 / Outlook ou Google. Archipel41 n'enregistre jamais votre mot de passe : "
+                   "la connexion passe par la page officielle du fournisseur. Les rendez-vous circulent dans les deux sens ; en cas de modification des deux côtés, "
+                   "la règle choisie s'applique (la plus récente, Archipel41 ou l'agenda externe) et l'opération est inscrite au journal de synchronisation. "
+                   "Un flux ICS permet aussi de s'abonner à l'agenda depuis n'importe quel logiciel.</p>")])
 
     module("Planning et météo", "Ordonner le chantier, anticiper le temps qu'il fera.",
            "<p>Diagramme de Gantt interactif — tâches, durées, jalons, dépendances, responsables, entreprises, avancement, retards, chemin critique — "
@@ -352,17 +359,38 @@ def build() -> G:
            [("32_assistant", "Une réponse citant l'article du règlement.")],
            "Les documents confidentiels ne quittent jamais l'agence sans l'autorisation explicite de l'administrateur.")
 
-    module("Documents", "Toutes les pièces, au même endroit, dans leur dernière version.",
-           "<p>Import, aperçu, classement, versions, historique, recherche dans le contenu, rattachement aux projets, export groupé. "
-           "PDF, Word, Excel, images, et fichiers DWG, DXF, IFC, PLN, PLA.</p>",
-           g.ol("<b>Importer</b> ou glisser-déposer ; une archive ZIP est dépliée automatiquement.",
-                "Ouvrez un document pour l'aperçu, le classement, les versions et l'historique.",
-                "<b>Nouvelle version</b> plutôt que nouveau document : l'historique reste intact.",
-                "Cherchez par nom ou par contenu ; exportez une sélection en ZIP."),
-           g.ul("Choisissez la bonne catégorie : Devis, CCTP, DPGF, Urbanisme… Elle sert aux autres parties.",
-                "Les documents scannés sont lus automatiquement : ils deviennent eux aussi interrogeables."),
-           [("30_documents", "La bibliothèque et la recherche dans le contenu.")],
-           "Les fichiers de CAO et de BIM sont conservés et versionnés, mais s'ouvrent dans votre logiciel métier.")
+    module("Documents", "Toutes les pièces, classées dans l'arborescence de l'agence.",
+           "<p>Chaque projet dispose de l'<b>arborescence ARCHIPEL 41</b> (Administration, Conception, Autorisation, Économie – appel d'offres, Réalisation, Archivage), "
+           "avec la fonction de chaque dossier et vos notes « Classer ici ». Aperçu intégré des PDF, images, tableurs, documents Word, plans DXF et maquettes IFC ; "
+           "annotations ; versions ; statut ; documents liés et similaires ; recherche dans le contenu ; export groupé.</p>",
+           g.ol("Choisissez un dossier dans l'arborescence, puis <b>Importer dans ce dossier</b> — ou importez, puis examinez la <b>suggestion de classement</b>.",
+                "Ouvrez un document : l'onglet <b>Aperçu</b> l'affiche ; <b>Annoter</b> pose une zone (glisser) ou un repère (clic) avec votre observation.",
+                "Onglet <b>Classement</b> : dossier, statut (travail, validé, archivé), documents liés, nom conforme à la convention.",
+                "<b>Nouvelle version</b> plutôt que nouveau document : l'ancienne reste consultable et téléchargeable."),
+           g.ul("La suggestion de classement cite la règle qui la justifie (par exemple R49 : l'ordre de service signé va dans 64_OS) ; <b>Classer ici</b> ou <b>Ignorer</b>.",
+                "Convention de nommage de l'agence : composantes séparées par « - », dates AAAA-MM-JJ, « MOA » pour la maîtrise d'ouvrage. Archipel41 la vérifie et propose un nom ; il ne renomme jamais tout seul.",
+                "Un dossier propre au projet (un lot particulier, par exemple) se saisit librement : il apparaît dans l'arborescence du projet.",
+                "Dans l'application Windows, <b>Ouvrir avec l'application</b> ouvre une copie du document dans votre logiciel (ArchiCAD, AutoCAD, Excel…)."),
+           [("80_documents_arborescence", "L'arborescence du projet et les documents importés."),
+            ("86_classement_suggere", "Une suggestion de classement, avec sa règle et son niveau de certitude."),
+            ("85_annotations_pdf", "Une zone et un repère annotés sur un CCTP : le fichier original n'est pas modifié."),
+            ("81_visionneuse_tableur", "Un tableur affiché avec les nombres et les dates au format français."),
+            ("83_visionneuse_dxf", "Un plan DXF : aperçu 2D par calques.")],
+           "Plans DXF : aperçu 2D simplifié (sans blocs, cotes ni hachures). Maquettes IFC : résumé de la structure et des objets, sans vue 3D. "
+           "DWG, RVT, PLN : conservés et versionnés, à ouvrir dans votre logiciel métier.")
+
+    module("Terrain et cartographie", "Le terrain du projet sur une carte.",
+           "<p>Fonds IGN et OpenStreetMap, parcelles cadastrales (indicatif), mesures de distances et de surfaces, repères et zones annotés, "
+           "import des données du géomètre et des bureaux d'études, fiche terrain, analyse urbanistique, exports GeoJSON et KML.</p>",
+           g.ol("Onglet <b>Carte</b> : mesurez, posez des repères annotés, identifiez une parcelle.",
+                "Onglet <b>Couches et imports</b> : GeoJSON, KML/KMZ, GPX, Shapefile, GeoPackage, DXF, GeoTIFF, image calée, MNT ; les coordonnées Lambert-93, CC42 à CC50, "
+                "Lambert II étendu et UTM sont converties automatiquement — le système reconnu est affiché.",
+                "Onglet <b>Fiche terrain</b> : références cadastrales, superficie (à la française : « 4 250,5 »), zone du PLU, orientation, contraintes."),
+           g.ul("Masquez une couche plutôt que de la supprimer : elle reste disponible.",
+                "Exportez en KML pour montrer le projet dans Google Earth."),
+           [("72_terrain_carte", "Les couches importées sur la carte."), ("70_terrain_mesure", "Une mesure de surface et de périmètre."),
+            ("71_terrain_couches", "Les couches et leur système de coordonnées d'origine.")],
+           "Le tracé cadastral est indicatif : ce n'est jamais un bornage. Les fonds de carte et l'identification de parcelle demandent une connexion Internet.")
 
     module("Clients et entreprises", "L'annuaire vivant de l'agence.",
            "<p>Coordonnées, contacts, spécialités, devis, marchés, projets, documents, historique des échanges et observations.</p>",
@@ -393,6 +421,28 @@ def build() -> G:
                 "Régénérez le rapport après chaque modification : il reflète l'état du moment."),
            [("35_rapports", "La génération des rapports.")])
 
+    module("Équipe, invités et échanges", "Chacun au bon endroit, avec les bons droits.",
+           "<p>Collaborateurs et rôles, autorisations module par module et projet par projet, invitations par code pour les partenaires extérieurs, "
+           "commentaires sur les documents et les projets, notifications.</p>",
+           g.ol("<b>Équipe</b> : ajoutez un collaborateur et choisissez son rôle.",
+                "Affinez ses autorisations (aucun accès, lecture, modification, gestion) par module, et limitez-le si besoin à certains projets.",
+                "<b>Inviter</b> : créez un code à durée limitée pour un maître d'ouvrage ou un bureau d'études ; il voit uniquement ce que vous partagez."),
+           g.ul("Les autorisations sont vérifiées par le serveur : masquer un bouton ne suffit jamais à donner un droit.",
+                "Un invité n'accède jamais aux paramètres ni aux données sensibles de l'agence.",
+                "Commentez directement sur le document : l'échange reste attaché à la pièce."),
+           [("55_equipe_autorisations", "Les autorisations par module."), ("57_invitation_creation", "Une invitation par code."),
+            ("60_espace_invite", "L'espace d'un invité : seulement ce qui est partagé.")])
+
+    module("Historique et diagnostic", "Savoir ce qui s'est passé, et le prouver.",
+           "<p>Journal de toutes les modifications (avant / après), connexions avec l'appareil utilisé, erreurs avec une référence E-XXXXXX expliquée en clair, "
+           "contrôle d'intégrité du journal scellé, conservation et export.</p>",
+           g.ol("Filtrez par projet, module, utilisateur ou opération ; cliquez une ligne pour voir l'ancienne et la nouvelle valeur.",
+                "En cas de problème, notez la référence de l'erreur et transmettez-la : elle suffit au diagnostic.",
+                "Exportez l'historique d'un projet en CSV si nécessaire."),
+           g.ul("Le journal est chaîné : toute altération est détectée par le contrôle d'intégrité.",
+                "Les mots de passe, jetons et clés n'apparaissent jamais dans les journaux."),
+           [("63_historique_activite", "Une modification avec ses valeurs avant et après."), ("64_diagnostic_erreur", "Une erreur expliquée en clair, avec sa référence.")])
+
     # ================================================================ scénarios
     g.chap("Quatre scénarios complets", "Les enchaînements qui font gagner le plus de temps.")
     g.block("Analyse des offres", g.ol("Projet actif, lot sélectionné.", "Import de la DPGF et du CCTP.", "Import de tous les devis en une fois (ou en ZIP).",
@@ -422,15 +472,26 @@ def build() -> G:
 
     g.chap("Rôles et sécurité", "Chacun voit et fait ce qui correspond à son rôle.")
     g.block("Les rôles", g.table(["Rôle", "Peut"], [
-        ["Administrateur", "Tout, y compris utilisateurs, paramètres, sauvegardes et journal d'audit."],
-        ["Chef de projet", "Créer, modifier, supprimer et <b>valider</b> (devis, ajustements de planning)."],
-        ["Collaborateur", "Créer et modifier."],
-        ["Lecture seule", "Consulter."],
-    ]))
+        ["Administrateur", "Tout, y compris utilisateurs, autorisations, paramètres, sauvegardes et journal."],
+        ["Gestionnaire", "Créer, modifier, supprimer et <b>valider</b> (devis, documents, ajustements de planning)."],
+        ["Collaborateur", "Créer et modifier, dans les modules et projets autorisés."],
+        ["Lecteur", "Consulter."],
+        ["Invité (par code)", "Consulter ce qui lui est partagé, pendant la durée de validité du code."],
+    ]) + "<p>Chaque rôle peut être affiné module par module et projet par projet (chapitre 16).</p>")
     g.block("Les protections", g.ul("Projets confidentiels visibles de leur seule équipe.", "Clés d'accès aux services chiffrées, jamais réaffichées.",
                                     "Journal d'audit de toutes les actions sensibles.", "Sauvegardes vérifiées par empreinte, restauration confirmée."))
     g.block("Sauvegarder", g.ol("<b>Paramètres › Sauvegardes › Sauvegarder maintenant</b>.", "Rangez l'archive sur un disque externe ou un espace partagé.",
                                 "Au moins une fois par semaine, et toujours avant une mise à jour."))
+    g.end()
+
+    g.chap("État des fonctionnalités", "Ce qui est développé et vérifié, ce qui demande une configuration, ce qui reste partiel. Version 1.2.")
+    g.block("Lecture", g.table(["État", "Signification"], [
+        ["<b>Développée et testée</b>", "Fonctionne et est vérifiée par des tests automatisés (navigateur et serveur)."],
+        ["<b>Nécessite une configuration externe</b>", "Développée et testée avec des services simulés ; demande un compte, une clé ou un serveur de votre côté."],
+        ["<b>Partielle</b>", "Utilisable, avec les limites indiquées."],
+        ["<b>Non développée</b>", "Hors du périmètre actuel."],
+    ]))
+    g.block("Fonctionnalités", g.table(["Fonctionnalité", "État", "Vérification ou limite"], [['Tableau de bord, projets, phases, lots libres, chantiers', 'Développée et testée', 'Parcours navigateur complet ; tests serveur'], ['Formulaires fiables (nombres à la française, saisie protégée)', 'Développée et testée', '25 vérifications navigateur ; tests serveur'], ['Lecture des devis, comparatif, remarques techniques, optimisation', 'Développée et testée', 'Tests du moteur de lecture et du comparatif'], ['Connexion (3 modes), rôles, autorisations par module et par projet', 'Développée et testée', "20 vérifications navigateur ; tests d'accès serveur"], ['Invitations par code, espace invité, commentaires, notifications', 'Développée et testée', 'Tests navigateur et serveur'], ['Historique, connexions, diagnostic, journal scellé et intégrité', 'Développée et testée', '10 vérifications navigateur ; tests serveur'], ['Terrain : carte, mesures, repères, imports (10 formats), conversions Lambert, fiche, exports', 'Développée et testée', '21 vérifications navigateur ; 13 tests serveur'], ['Documents : arborescence ARCHIPEL 41, suggestion de classement, nommage, statut, liens, similaires', 'Développée et testée', '25 vérifications navigateur ; tests serveur'], ['Visionneuses tableur et Word, annotations PDF / images, versions sans écrasement', 'Développée et testée', 'Tests navigateur et serveur (fichier original contrôlé par empreinte)'], ['Aide contextuelle et guides embarqués', 'Développée et testée', 'Test navigateur et serveur'], ['Hors connexion, sauvegarde et restauration', 'Développée et testée', 'Parcours navigateur ; tests serveur'], ['Synchronisation Outlook / Google Agenda', 'Nécessite une configuration externe', 'Testée avec des réponses simulées des services ; nécessite une application déclarée chez Microsoft ou Google'], ['Fonds de carte, identification de parcelle, analyse urbanistique, météo', 'Nécessite une configuration externe', 'Services publics en ligne ; comportement hors ligne testé (message clair)'], ['Assistant IA avec rédaction', 'Nécessite une configuration externe', "Fonctionne sans IA ; la rédaction demande une clé d'un fournisseur ou un modèle local"], ['Travail à plusieurs postes', 'Nécessite une configuration externe', "Demande le serveur central de l'agence (PostgreSQL) ; synchronisation testée"], ['Plans DXF', 'Partielle', 'Aperçu 2D simplifié : lignes, polylignes, cercles, arcs, textes ; sans blocs, cotes ni hachures ; DXF binaire non lu'], ['Maquettes IFC', 'Partielle', 'Résumé (niveaux, objets par type, locaux) ; pas de vue 3D'], ['Aperçu Word', 'Partielle', 'Texte, titres et tableaux ; sans images ni mise en page exacte'], ['Annotations', 'Partielle', 'PDF et images ; pas sur les tableurs, documents Word ni plans'], ["Modèle d'arborescence", 'Partielle', "Modèle ARCHIPEL 41 v4 intégré ; dossiers propres au projet possibles ; pas encore d'éditeur du modèle dans l'interface"], ['Harmonisation graphique « style suisse »', 'Partielle', 'Aide, en-tête, guides et rapports harmonisés ; pas de refonte graphique complète de tous les écrans'], ['Installateur Windows', 'Partielle', 'Construit et contrôlé (contenu, empreintes) ; non exécuté sur un poste Windows réel pendant le développement'], ["Vue 3D des maquettes, ouverture des DWG / RVT / PLN dans l'application", 'Non développée', "Fichiers conservés et versionnés ; ouverture dans le logiciel métier (bouton « Ouvrir avec l'application »)"]]))
     g.end()
 
     g.chap("Dix conseils pour en tirer le meilleur")

@@ -249,3 +249,16 @@ def test_terrain_numbers_french_format(client, agency, project):
     neg = client.put(f"/api/projects/{project['id']}", json={"terrain": {"superficie_m2": "-12"}, "version": v}, headers=h)
     assert neg.status_code == 422
     assert client.get(f"/api/projects/{project['id']}", headers=h).json()["terrain"]["superficie_m2"] == 4250.5
+
+
+def test_place_image_and_long_format_labels(client, agency, project):
+    """Plan non géoréférencé positionné par son emprise ; libellés de format compatibles avec la colonne (PostgreSQL)."""
+    import io as _io
+    from PIL import Image
+    buf = _io.BytesIO(); Image.new("RGB", (60, 40), "white").save(buf, "PNG")
+    r = client.post(f"/api/projects/{project['id']}/geo/place-image", files={"file": ("Plan masse.png", buf.getvalue())},
+                    data={"bounds": json.dumps([1.149, 49.079, 1.152, 49.081])}, headers=agency["admin"])
+    assert r.status_code in (200, 201), r.text
+    assert r.json()["source_format"] == "Plan positionné"
+    from app.services import geoformats
+    assert len("MNT ESRI ASCII") <= 20 and all(len(f) <= 20 for f in ("GeoJSON", "KML", "GPX", "GeoPackage", "Shapefile", "DXF", "Image calée", "Plan positionné"))

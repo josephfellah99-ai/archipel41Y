@@ -724,7 +724,7 @@ def read_esri_ascii(data: bytes, override: int | None = None) -> GeoResult:
     buf = io.BytesIO()
     img.save(buf, "PNG")
     epsg = override
-    res = GeoResult(format="MNT (grille ESRI ASCII)")
+    res = GeoResult(format="MNT ESRI ASCII")
     if not epsg:
         epsg, note = geocrs.guess_epsg([x0, x0 + nc * cs], [y0, y0 + nr * cs])
         if not epsg:

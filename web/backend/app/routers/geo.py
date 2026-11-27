@@ -81,7 +81,7 @@ def _store_layer(db, user, request, pid, name, res: geoformats.GeoResult, docume
     kind = "image" if res.image_png and not res.features else "vector"
     n = scoped_query(db, GeoLayer, user).filter(GeoLayer.project_id == pid).count()
     layer = create_obj(db, GeoLayer, {
-        "project_id": pid, "name": name[:200], "kind": kind, "source_format": source_format or res.format, "document_id": document_id,
+        "project_id": pid, "name": name[:200], "kind": kind, "source_format": (source_format or res.format or "")[:20] or None, "document_id": document_id,
         "data": res.collection() if res.features else None, "image": image, "visible": True, "position": n,
         "bounds": geoformats.bounds(res.features) if res.features else res.image_bounds, "crs_source": geocrs.NAMES.get(res.epsg, str(res.epsg)) if res.epsg else None,
         "notes": "\n".join([x for x in [crs_note or res.crs_note, *res.warnings] if x]) or None,
@@ -160,7 +160,7 @@ async def place_image(pid: str, request: Request, file: UploadFile = File(...), 
     else:
         png = geoformats._to_png(data)
     doc, _ = docsvc.add_document(db, user, fname, data, project_id=pid, category="plan", tags=["cartographie"])
-    res = geoformats.GeoResult(image_png=png, image_bounds=b, format="Plan positionné manuellement", epsg=4326)
+    res = geoformats.GeoResult(image_png=png, image_bounds=b, format="Plan positionné", epsg=4326)
     layer = _store_layer(db, user, request, pid, name or fname.rsplit(".", 1)[0], res, doc.id,
                          crs_note="Positionné manuellement : précision limitée, à vérifier sur le fond de carte.")
     db.commit()

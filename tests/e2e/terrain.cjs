@@ -53,7 +53,7 @@ async function mapClick(page, fx, fy, opts = {}) {
 async function main() {
   if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "a41terrain_"));
-  // jeux de données géographiques fictifs (Normanville, Eure)
+  // jeux de données géographiques fictifs (commune de démonstration, Eure)
   const gj = path.join(tmp, "Releve_geometre_L93.geojson");
   fs.writeFileSync(gj, JSON.stringify({
     type: "FeatureCollection", crs: { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::2154" } },
@@ -92,7 +92,7 @@ async function main() {
   await inputs.nth(6).fill(PASSWORD);
   await page.click("button:has-text(\"Créer l'agence et me connecter\")");
   await page.waitForSelector("text=Bonjour Joseph");
-  const p = (await api(page, "POST", "/api/projects", { code: "26-041", name: "Extension concession (démo)", latitude: 49.0802, longitude: 1.1505, city: "Normanville" })).data;
+  const p = (await api(page, "POST", "/api/projects", { code: "26-041", name: "Extension concession (démo)", latitude: 49.0802, longitude: 1.1505, city: "Commune-de-Démo" })).data;
   check("Projet de démonstration localisé créé", !!p?.id);
   await page.evaluate((id) => localStorage.setItem("a41.project", id), p.id);
   await page.goto(BASE + "#/terrain");
