@@ -9,15 +9,18 @@ const { execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const [html, out, title] = process.argv.slice(2);
+const [html, out, title, style] = process.argv.slice(2);
 const PY = process.env.PYTHON || path.resolve(__dirname, "../../.venv/bin/python");
 
-const footer = `<div style="font-family:Inter,Segoe UI,sans-serif;font-size:8px;color:#718578;width:100%;padding:0 16mm;display:flex;justify-content:space-between">
+const footerSwiss = `<div style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:7px;color:#111;width:100%;padding:0 18mm;display:flex;justify-content:space-between;letter-spacing:.04em">
+  <span><b>ARCHIPEL41</b>&nbsp;&nbsp;&nbsp;${title}</span><span><span class="pageNumber"></span></span></div>`;
+const footerDefault = `<div style="font-family:Inter,Segoe UI,sans-serif;font-size:8px;color:#718578;width:100%;padding:0 16mm;display:flex;justify-content:space-between">
   <span>ARCHIPEL41 · ${title}</span><span>Page <span class="pageNumber"></span> / <span class="totalPages"></span></span></div>`;
+const footer = style === "swiss" ? footerSwiss : footerDefault;
 
 async function render(page, file) {
   await page.pdf({ path: file, format: "A4", printBackground: true, displayHeaderFooter: true, headerTemplate: "<div></div>",
-    footerTemplate: footer, margin: { top: "16mm", bottom: "16mm", left: "16mm", right: "16mm" } });
+    footerTemplate: footer, margin: style === "swiss" ? { top: "18mm", bottom: "17mm", left: "18mm", right: "18mm" } : { top: "16mm", bottom: "16mm", left: "16mm", right: "16mm" } });
 }
 
 (async () => {

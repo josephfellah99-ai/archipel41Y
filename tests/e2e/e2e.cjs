@@ -203,6 +203,14 @@ async function main() {
   await shot(page, "21_comparatif_filtre");
   await page.click("button[role=tab]:has-text('Conclusion')");
   await shot(page, "22_comparatif_conclusion", { full: true });
+  await page.click("button[role=tab]:has-text('Coût réel et économies')");
+  await page.waitForTimeout(400);
+  check("Comparateur : coût réel probable et leviers d'économie", (await page.locator("text=Coût réel probable par offre").count()) > 0 && (await page.locator("text=Leviers de négociation").count()) > 0);
+  await shot(page, "53_comparatif_optimisation", { full: true });
+  await page.click("button[role=tab]:has-text('Remarques techniques')");
+  await page.waitForTimeout(400);
+  check("Comparateur : remarques techniques avec actions", (await page.locator("text=anormalement bas").count()) > 0);
+  await shot(page, "54_comparatif_remarques", { full: true });
   await page.click("button[role=tab]:has-text('Contrôle CCTP')");
   await shot(page, "23_comparatif_cctp");
   const [dl] = await Promise.all([page.waitForEvent("download"), page.click("button:has-text('Excel')")]);

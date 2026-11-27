@@ -1,5 +1,17 @@
 # Journal des versions
 
+## 1.1.0 – 27/11/2026
+Comparateur de devis : lecture plus sûre des nombres, remarques techniques, optimisation économique à qualité constante.
+- Lecture des lignes : les nombres techniques de la désignation (Uw 1,3, Ø 90, EI 30, année…) ne sont plus pris pour une
+  quantité ; colonne TVA sans « % » reconnue ; découpage retenu en priorité si quantité × PU = montant, sinon ligne signalée.
+- Caractéristiques techniques lues dans les libellés (épaisseur, classe de béton, R, Uw/Ug/Up, λ, diamètre, coupe-feu,
+  acoustique, dosage, dimensions, UPEC) et comparées à la DPGF et entre offres.
+- Remarques techniques classées (gravité, thème, impact en euros, action recommandée).
+- Coût réel probable par offre (coûts cachés), leviers de négociation ciblant la médiane des offres conformes, plancher
+  réaliste du lot ; prix anormalement bas et prestations inférieures exclus des cibles.
+- Exports Excel, Word, PDF : feuilles « Optimisation », « Leviers de négociation », « Remarques techniques ».
+- 13 tests supplémentaires (78 au total, SQLite et PostgreSQL) ; 28 vérifications de bout en bout.
+
 ## 1.0.0 – 25/11/2026
 Première version.
 - 11 modules : tableau de bord, projets et chantiers (phases ESQ→AOR), devis et comparateur, agenda, planning Gantt et météo,
