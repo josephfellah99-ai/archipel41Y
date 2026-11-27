@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, blobUrl, download } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
+import { Comments } from "../components/Comments";
 import { bytes, dateFr, dateTimeFr, DOC_CATEGORIES } from "../lib/format";
 import { Card, Empty, ErrorBox, Field, Modal, Notice, PageHeader, Select, Spinner, Tabs, useDebounced, AsyncButton } from "../components/ui";
 
@@ -89,7 +90,7 @@ function DocModal({ doc, onClose, onChanged }: { doc: any; onClose: () => void; 
       <button className="btn-secondary" onClick={() => download(`/api/documents/${doc.id}/download${ver ? `?version=${ver}` : ""}`).catch(toastError)}><Download size={15} /> Télécharger</button>
       {perms.write && <><input ref={fileRef} type="file" hidden onChange={(e) => e.target.files?.[0] && newVersion(e.target.files[0])} />
         <button className="btn-primary" onClick={() => fileRef.current?.click()}><Upload size={15} /> Nouvelle version</button></>}</>}>
-      <Tabs value={tab} onChange={setTab} tabs={[{ id: "apercu", label: "Aperçu" }, { id: "infos", label: "Classement" }, { id: "versions", label: `Versions (${full.data?.versions?.length || doc.current_version})` }, { id: "historique", label: "Historique" }]} />
+      <Tabs value={tab} onChange={setTab} tabs={[{ id: "apercu", label: "Aperçu" }, { id: "infos", label: "Classement" }, { id: "versions", label: `Versions (${full.data?.versions?.length || doc.current_version})` }, { id: "historique", label: "Historique" }, { id: "echanges", label: "Échanges" }]} />
       {tab === "apercu" && <DocPreview doc={doc} version={ver} />}
       {tab === "infos" && (
         <div className="grid sm:grid-cols-2 gap-3">
@@ -110,6 +111,7 @@ function DocModal({ doc, onClose, onChanged }: { doc: any; onClose: () => void; 
             <tr key={v.id}><td>v{v.number}{v.number === full.data.current_version && <span className="chip bg-ok/15 text-ok ml-1">actuelle</span>}</td><td>{v.filename}</td><td>{bytes(v.size)}</td><td>{dateTimeFr(v.created_at)}</td><td className="text-muted">{v.comment || ""}</td>
               <td className="whitespace-nowrap">{v.has_file ? <><button className="btn-ghost p-1" onClick={() => { setVer(v.number); setTab("apercu"); }} title="Aperçu"><Eye size={14} /></button>
                 <button className="btn-ghost p-1" onClick={() => download(`/api/documents/${doc.id}/download?version=${v.number}`).catch(toastError)} title="Télécharger"><Download size={14} /></button></> : <span className="text-xs text-warn">non synchronisé</span>}</td></tr>))}</tbody></table>) : <Spinner />)}
+      {tab === "echanges" && <Comments entity="documents" entityId={doc.id} />}
       {tab === "historique" && <ul className="space-y-2">{(hist.data || []).map((h, i) => <li key={i} className="text-sm"><span className="font-medium">{h.user}</span> · {h.op} · <span className="text-muted">{dateTimeFr(h.at)}</span>
         {h.changes && <span className="text-xs text-muted"> — {Object.keys(h.changes).join(", ")}</span>}</li>)}</ul>}
     </Modal>

@@ -41,17 +41,20 @@ export function Stat({ label, value, hint, icon, tone = "forest" }: { label: str
   );
 }
 
-export function Field({ label, children, hint, className = "", required = false, error }: {
+export function Field({ label, children, hint, className = "", required = false, error, group = false }: {
   label: string; children: ReactNode; hint?: ReactNode; className?: string; required?: boolean; error?: string | null;
+  /** group : plusieurs contrôles (cases à cocher, boutons) — rendu en groupe, pas en <label> */
+  group?: boolean;
 }) {
   const text = label.replace(/\s*\*$/, "");
   const req = required || /\*$/.test(label);
+  const Tag: any = group ? "div" : "label";
   return (
-    <label className={`block ${className}`}>
+    <Tag className={`block ${className}`} {...(group ? { role: "group", "aria-label": text } : {})}>
       <span className="label">{text}{req && <span className="text-danger ml-0.5" aria-label="obligatoire">*</span>}</span>
       {children}
       {error ? <span className="block text-xs text-danger mt-1" role="alert">{error}</span> : hint && <span className="block text-xs text-muted mt-1">{hint}</span>}
-    </label>
+    </Tag>
   );
 }
 

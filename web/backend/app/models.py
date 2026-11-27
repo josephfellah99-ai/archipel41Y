@@ -68,6 +68,9 @@ class User(SyncMixin, Base):
     color: Mapped[str | None] = mapped_column(String(20), nullable=True)
     preferences: Mapped[dict] = mapped_column(JSONType, default=dict)
     last_login_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    # Autorisations fines : {"modules": {module: none|read|write|full}, "projects": {project_id: none|read|write},
+    #                        "assigned_only": bool}  — appliquées côté serveur (security.effective_level)
+    permissions: Mapped[dict] = mapped_column(JSONType, default=dict)
 
 
 # --------------------------------------------------------------------------- Clients & entreprises
@@ -227,6 +230,8 @@ class Document(SyncMixin, Base):
     text_status: Mapped[str] = mapped_column(String(30), default="en_attente")  # en_attente|ok|ocr|vide|non_supporte|erreur
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     linked: Mapped[dict] = mapped_column(JSONType, default=dict)  # {company_id, client_id, event_id, quote_id}
+    status: Mapped[str] = mapped_column(String(20), default="travail")  # travail|valide|archive
+    related_ids: Mapped[list] = mapped_column(JSONType, default=list)  # liens entre documents
 
 
 class DocumentVersion(SyncMixin, Base):
@@ -419,6 +424,172 @@ class Conversation(SyncMixin, Base):
 
 
 # --------------------------------------------------------------------------- Système
+class Comment(SyncMixin, Base):
+    """Commentaire ou échange rattaché à un projet, un document, une tâche…"""
+    __tablename__ = "comments"
+    project_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    entity: Mapped[str] = mapped_column(String(40))          # projects|documents|tasks|events|quotes
+    entity_id: Mapped[str] = mapped_column(String(36), index=True)
+    author_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    author_name: Mapped[str] = mapped_column(String(200))
+    guest: Mapped[bool] = mapped_column(Boolean, default=False)
+    body: Mapped[str] = mapped_column(Text)
+    mentions: Mapped[list] = mapped_column(JSONType, default=list)  # user_ids
+    edited: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class Notification(SyncMixin, Base):
+    __tablename__ = "notifications"
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    kind: Mapped[str] = mapped_column(String(40))            # document_ajoute|document_modifie|tache_terminee|commentaire|…
+    title: Mapped[str] = mapped_column(String(300))
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    link: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    project_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    actor_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+
+class GeoLayer(SyncMixin, Base):
+    """Couche cartographique d'un projet : fichier importé (GeoJSON, KML, Shapefile, GPKG, DXF…),
+    service WMS/WMTS/WFS, image géoréférencée ou annotations."""
+    __tablename__ = "geo_layers"
+    project_id: Mapped[str] = mapped_column(String(36), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(20))            # vector|wms|wmts|wfs|image|annotations
+    source_format: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    document_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    data: Mapped[dict | None] = mapped_column(JSONType, nullable=True)        # FeatureCollection (WGS84)
+    service: Mapped[dict | None] = mapped_column(JSONType, nullable=True)     # {url, layers, format, attribution}
+    image: Mapped[dict | None] = mapped_column(JSONType, nullable=True)       # {document_id, bounds}
+    style: Mapped[dict] = mapped_column(JSONType, default=dict)
+    visible: Mapped[bool] = mapped_column(Boolean, default=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    bounds: Mapped[list | None] = mapped_column(JSONType, nullable=True)      # [minLon, minLat, maxLon, maxLat]
+    crs_source: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class Invitation(Base):
+    """Invitation d'une personne extérieure : code à usage limité, jamais stocké en clair."""
+    __tablename__ = "invitations"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    agency_id: Mapped[str] = mapped_column(String(36), index=True)
+    kind: Mapped[str] = mapped_column(String(20))            # demo|projet
+    label: Mapped[str] = mapped_column(String(200))
+    guest_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    guest_email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    code_hash: Mapped[str] = mapped_column(String(128), unique=True)
+    code_hint: Mapped[str] = mapped_column(String(10))
+    created_by: Mapped[str] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    max_uses: Mapped[int] = mapped_column(Integer, default=1)
+    uses: Mapped[int] = mapped_column(Integer, default=0)
+    revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    project_ids: Mapped[list] = mapped_column(JSONType, default=list)
+    modules: Mapped[list] = mapped_column(JSONType, default=list)             # fiche|documents|planning|terrain
+    doc_categories: Mapped[list] = mapped_column(JSONType, default=list)      # vide = documents validés uniquement
+    can_download: Mapped[bool] = mapped_column(Boolean, default=False)
+    can_comment: Mapped[bool] = mapped_column(Boolean, default=False)
+    session_hours: Mapped[int] = mapped_column(Integer, default=8)
+    last_used_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+
+class GuestSession(Base):
+    __tablename__ = "guest_sessions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    agency_id: Mapped[str] = mapped_column(String(36), index=True)
+    invitation_id: Mapped[str] = mapped_column(String(36), index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    ip: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(300), nullable=True)
+
+
+class ConnectionLog(Base):
+    """Historique des connexions : réussies, échouées, invités, déconnexions."""
+    __tablename__ = "connection_logs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    agency_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    user_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    identity: Mapped[str | None] = mapped_column(String(200), nullable=True)  # e-mail saisi ou invitation
+    at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+    kind: Mapped[str] = mapped_column(String(30))            # admin|collaborateur|invite|deconnexion|renouvellement
+    success: Mapped[bool] = mapped_column(Boolean, default=True)
+    reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    ip: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    device: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    session_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    security_event: Mapped[str | None] = mapped_column(String(80), nullable=True)
+
+
+class ErrorLog(Base):
+    """Journal technique : erreurs API, synchronisation, imports, calculs, exceptions Python et JavaScript."""
+    __tablename__ = "error_logs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    ref: Mapped[str] = mapped_column(String(20), index=True)  # identifiant court communiqué à l'utilisateur
+    agency_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+    severity: Mapped[str] = mapped_column(String(12))        # info|avertissement|erreur|critique
+    source: Mapped[str] = mapped_column(String(20))          # api|sync|import|validation|calcul|chargement|base|python|javascript|document
+    module: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    message: Mapped[str] = mapped_column(Text)
+    explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    context: Mapped[dict] = mapped_column(JSONType, default=dict)
+    path: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    resolved: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class CalendarAccount(Base):
+    """Compte d'agenda externe (Microsoft 365 / Google) connecté par OAuth 2.0 — aucun mot de passe stocké."""
+    __tablename__ = "calendar_accounts"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    agency_id: Mapped[str] = mapped_column(String(36), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    provider: Mapped[str] = mapped_column(String(20))        # microsoft|google
+    account_email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    tokens_enc: Mapped[str | None] = mapped_column(Text, nullable=True)       # jetons chiffrés (services.crypto)
+    calendars: Mapped[list] = mapped_column(JSONType, default=list)          # [{id, name, selected, primary}]
+    status: Mapped[str] = mapped_column(String(20), default="actif")          # actif|suspendu|erreur|deconnecte
+    delta: Mapped[dict] = mapped_column(JSONType, default=dict)              # jetons de synchronisation incrémentale
+    last_sync_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class CalendarLink(Base):
+    """Correspondance rendez-vous Archipel41 ↔ événement externe."""
+    __tablename__ = "calendar_links"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(String(36), index=True)
+    event_id: Mapped[str] = mapped_column(String(36), index=True)
+    calendar_id: Mapped[str] = mapped_column(String(300))
+    external_id: Mapped[str] = mapped_column(String(300), index=True)
+    external_etag: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    external_updated: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    local_version: Mapped[int] = mapped_column(Integer, default=0)
+    synced_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class CalendarSyncLog(Base):
+    __tablename__ = "calendar_sync_logs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    account_id: Mapped[str] = mapped_column(String(36), index=True)
+    at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+    direction: Mapped[str] = mapped_column(String(10))       # push|pull|both
+    created: Mapped[int] = mapped_column(Integer, default=0)
+    updated: Mapped[int] = mapped_column(Integer, default=0)
+    deleted: Mapped[int] = mapped_column(Integer, default=0)
+    conflicts: Mapped[int] = mapped_column(Integer, default=0)
+    success: Mapped[bool] = mapped_column(Boolean, default=True)
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    details: Mapped[list] = mapped_column(JSONType, default=list)
+
+
 class Setting(Base):
     __tablename__ = "settings"
     __table_args__ = (UniqueConstraint("agency_id", "key", name="uq_settings_key"),)
@@ -440,6 +611,13 @@ class AuditLog(Base):
     entity_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     ip: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    module: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    project_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    changes: Mapped[dict | None] = mapped_column(JSONType, nullable=True)   # {champ: {avant, apres}}
+    result: Mapped[str] = mapped_column(String(20), default="succes")       # succes|refus|echec
+    actor_label: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    prev_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    hash: Mapped[str | None] = mapped_column(String(64), nullable=True)     # chaînage : toute altération est détectable
 
 
 class ChangeLog(Base):
@@ -481,6 +659,9 @@ class SyncConflict(Base):
 # Entités synchronisées, dans l'ordre de dépendance (clés étrangères).
 SYNC_MODELS: dict[str, type] = {
     "users": User,
+    "comments": Comment,
+    "notifications": Notification,
+    "geo_layers": GeoLayer,
     "clients": Client,
     "companies": Company,
     "projects": Project,

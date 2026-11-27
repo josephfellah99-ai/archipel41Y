@@ -107,6 +107,15 @@ def patch_document(doc_id: str, payload: dict, request: Request, user: User = De
     d = get_owned(db, Document, doc_id, user)
     version = payload.pop("version", None)
     data = DocumentPatch.model_validate(payload).model_dump(exclude_unset=True)
+    if "status" in data and data["status"] != d.status and data["status"] in ("valide", "archive"):
+        from ..security import module_level
+
+        if module_level(user, "documents") != "full":
+            raise HTTPException(403, "La validation et l'archivage des documents sont réservés aux gestionnaires et administrateurs.")
+    if data.get("related_ids"):
+        ok = {x.id for x in db.query(Document).filter(Document.id.in_(data["related_ids"]), Document.agency_id == user.agency_id,
+                                                      Document.deleted.is_(False))}
+        data["related_ids"] = [x for x in data["related_ids"] if x in ok and x != d.id]
     update_obj(db, d, data, user, version, request)
     if "confidential" in data or "project_id" in data:
         from ..models import DocumentChunk

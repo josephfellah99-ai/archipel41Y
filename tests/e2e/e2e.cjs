@@ -85,9 +85,8 @@ async function main() {
   await shot(page, "03_tableau_de_bord_vide");
 
   // ----------------------------------------------------------------- 2. utilisateurs
-  await go(page, "/parametres");
-  await page.click("button[role=tab]:has-text('Utilisateurs')");
-  await page.click("button.btn-primary:has-text('Utilisateur')");
+  await go(page, "/equipe");
+  await page.click("button.btn-primary:has-text('Collaborateur')");
   const um = page.locator("[role=dialog]");
   await um.locator("input").nth(0).fill("Lucas Bernard");
   await um.locator("input[type=email]").fill("lucas.bernard@atelier-exemple.fr");
@@ -96,7 +95,7 @@ async function main() {
   await shot(page, "04_ajout_utilisateur");
   await um.locator("button:has-text('Enregistrer')").click();
   await page.waitForSelector("text=Lucas Bernard");
-  check("Utilisateurs : création d'un chef de projet", true);
+  check("Utilisateurs : création d'un gestionnaire", true);
   await shot(page, "05_utilisateurs_permissions", { full: true });
 
   // ----------------------------------------------------------------- 3. annuaire

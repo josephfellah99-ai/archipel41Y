@@ -78,7 +78,7 @@ export const FINANCE_KINDS: Record<string, string> = {
   paiement: "Paiement", depense: "Dépense", honoraires: "Honoraires",
 };
 export const FIN_STATUS: Record<string, string> = { prevu: "Prévu", emis: "Émis", valide: "Validé", paye: "Payé", annule: "Annulé" };
-export const ROLE_LABELS: Record<string, string> = { admin: "Administrateur", manager: "Chef de projet", member: "Collaborateur", viewer: "Lecture seule" };
+export const ROLE_LABELS: Record<string, string> = { admin: "Administrateur", manager: "Gestionnaire", member: "Collaborateur", viewer: "Lecteur" };
 export const ACTIVITY_LABELS: Record<string, string> = {
   terrassement: "Terrassement", fondations: "Fondations", beton: "Béton / coulage", maconnerie: "Maçonnerie", charpente: "Charpente",
   couverture: "Couverture", etancheite: "Étanchéité", facade: "Façade / enduits", peinture_ext: "Peinture extérieure",

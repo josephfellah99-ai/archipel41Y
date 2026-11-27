@@ -38,45 +38,11 @@ function AgencyTab() {
 }
 
 function UsersTab() {
-  const { perms, user, toast, toastError } = useApp();
-  const users = useApi<any[]>("/api/users");
-  const roles = useApi<any[]>("/api/roles");
-  const [edit, setEdit] = useState<any>(null);
-  const save = async () => {
-    try {
-      if (edit.id) { const { email, ...rest } = edit; await api.call("PUT", `/api/users/${edit.id}`, { full_name: rest.full_name, role: rest.role, active: rest.active, job_title: rest.job_title || null, phone: rest.phone || null, color: rest.color || null, ...(rest.password ? { password: rest.password } : {}) }); }
-      else await api.call("POST", "/api/users", { email: edit.email, full_name: edit.full_name, role: edit.role, password: edit.password, job_title: edit.job_title || null, color: edit.color || null });
-      toast("Utilisateur enregistré."); setEdit(null); users.reload();
-    } catch (e) { toastError(e); }
-  };
-  const PERM_LABELS: Record<string, string> = { read: "Consulter", write: "Créer / modifier", delete: "Supprimer", validate: "Valider (devis, planning)", admin: "Administrer (utilisateurs, paramètres, sauvegardes)" };
   return (
-    <div className="space-y-6">
-      <Card title="Utilisateurs de l'agence" pad={false} actions={perms.admin && <button className="btn-primary" onClick={() => setEdit({ email: "", full_name: "", role: "member", password: "", active: true, color: "#718578" })}><Plus size={15} /> Utilisateur</button>}>
-        <table className="table"><thead><tr><th>Nom</th><th>E-mail</th><th>Rôle</th><th>État</th><th>Dernière connexion</th></tr></thead>
-          <tbody>{(users.data || []).map((u) => (
-            <tr key={u.id} className={perms.admin ? "hover:bg-sunken/50 cursor-pointer" : ""} onClick={() => perms.admin && setEdit({ ...u, password: "" })}>
-              <td className="font-medium"><span className="inline-block h-2.5 w-2.5 rounded-full mr-2" style={{ background: u.color || "#718578" }} />{u.full_name}{u.id === user?.id && <span className="text-xs text-muted"> (vous)</span>}</td>
-              <td className="text-muted">{u.email}</td><td>{u.role_label}</td><td>{u.active ? <span className="chip bg-ok/15 text-ok">actif</span> : <span className="chip bg-sunken text-muted">désactivé</span>}</td>
-              <td className="text-muted">{dateTimeFr(u.last_login_at)}</td></tr>))}</tbody></table>
-      </Card>
-      <Card title="Matrice des permissions">
-        <div className="overflow-x-auto"><table className="table"><thead><tr><th>Permission</th>{(roles.data || []).map((r) => <th key={r.code} className="text-center">{r.label}</th>)}</tr></thead>
-          <tbody>{Object.entries(PERM_LABELS).map(([p, l]) => <tr key={p}><td>{l}</td>{(roles.data || []).map((r) => <td key={r.code} className="text-center">{r.permissions.includes(p) ? <Check size={15} className="inline text-ok" /> : "—"}</td>)}</tr>)}</tbody></table></div>
-        <p className="text-xs text-muted mt-3">Les projets marqués « confidentiels » ne sont visibles que de leur équipe, des chefs de projet et des administrateurs. Les données de chaque agence sont strictement isolées.</p>
-      </Card>
-      <Modal open={!!edit} onClose={() => setEdit(null)} title={edit?.id ? edit.full_name : "Nouvel utilisateur"} footer={<><button className="btn-secondary" onClick={() => setEdit(null)}>Annuler</button><AsyncButton onClick={save} disabled={!edit?.full_name?.trim() || !edit?.email?.trim() || (!edit?.id && !edit?.password)}>Enregistrer</AsyncButton></>}>
-        {edit && <div className="grid sm:grid-cols-2 gap-3">
-          <Field label="Nom complet *"><input className="input" value={edit.full_name} onChange={(e) => setEdit({ ...edit, full_name: e.target.value })} /></Field>
-          <Field label="E-mail *"><input className="input" type="email" disabled={!!edit.id} value={edit.email} onChange={(e) => setEdit({ ...edit, email: e.target.value })} /></Field>
-          <Field label="Rôle"><Select value={edit.role} onChange={(v) => setEdit({ ...edit, role: v })} options={Object.entries(ROLE_LABELS).map(([v, l]) => ({ value: v, label: l }))} /></Field>
-          <Field label="Fonction"><input className="input" value={edit.job_title || ""} onChange={(e) => setEdit({ ...edit, job_title: e.target.value })} /></Field>
-          <Field label={edit.id ? "Nouveau mot de passe (facultatif)" : "Mot de passe initial *"} hint="10 caractères minimum, 3 types de caractères."><input className="input" type="password" autoComplete="new-password" value={edit.password} onChange={(e) => setEdit({ ...edit, password: e.target.value })} /></Field>
-          <Field label="Couleur"><input className="input h-10 p-1" type="color" value={edit.color || "#718578"} onChange={(e) => setEdit({ ...edit, color: e.target.value })} /></Field>
-          {edit.id && <label className="text-sm flex items-center gap-2"><input type="checkbox" checked={edit.active} onChange={(e) => setEdit({ ...edit, active: e.target.checked })} /> Compte actif</label>}
-        </div>}
-      </Modal>
-    </div>
+    <Card title="Utilisateurs et autorisations">
+      <p className="text-sm">La gestion des comptes (création, rôles, autorisations par module et par projet, désactivation, suppression) et des invitations se fait désormais dans le module <b>Équipe</b>.</p>
+      <a className="btn-primary mt-3 inline-flex" href="#/equipe">Ouvrir la gestion de l'équipe</a>
+    </Card>
   );
 }
 

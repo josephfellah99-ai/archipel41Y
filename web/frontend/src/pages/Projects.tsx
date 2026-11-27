@@ -6,6 +6,7 @@ import { useApi, useApp } from "../lib/app";
 import { dateFr, eur, LOT_STATUS, STATUS_PROJECT, toNum } from "../lib/format";
 import { AsyncButton, Card, Confirm, Empty, ErrorBox, Field, Modal, NumberInput, PageHeader, Progress, Select, Spinner, Tabs } from "../components/ui";
 import { DocumentsTable } from "./Documents";
+import { Comments } from "../components/Comments";
 
 const emptyProject = { code: "", name: "", client_id: "", status: "etude", address: "", postal_code: "", city: "", program: "", description: "",
   budget_initial: "", surface_m2: "", start_date: "", end_date: "", confidential: false, fee_rate: "" };
@@ -282,7 +283,7 @@ export function ProjectDetail() {
       <Tabs value={tab} onChange={setTab} tabs={[
         { id: "synthese", label: "Fiche projet" }, { id: "phases", label: "Phases" }, { id: "lots", label: `Lots (${data.lots.length})` },
         { id: "terrain", label: "Terrain" }, { id: "equipe", label: `Équipe (${data.team.length})` }, { id: "incidents", label: `Incidents (${data.incidents.length})` },
-        { id: "documents", label: `Documents (${data.counts.documents})` }]} />
+        { id: "documents", label: `Documents (${data.counts.documents})` }, { id: "echanges", label: "Échanges" }]} />
       {tab === "synthese" && form && (
         <Card title="Fiche projet" actions={perms.write && <AsyncButton onClick={() => save(form)} disabled={!form.code?.trim() || !form.name?.trim()}><Save size={15} /> Enregistrer</AsyncButton>}>
           <ProjectForm value={form} onChange={setForm} clients={clients.data || []} />
@@ -296,6 +297,7 @@ export function ProjectDetail() {
       {tab === "equipe" && <Team project={p} users={users.data || []} onSave={save} canEdit={perms.write} />}
       {tab === "incidents" && <Incidents projectId={p.id} incidents={data.incidents} reload={reload} />}
       {tab === "documents" && <DocumentsTable projectId={p.id} />}
+      {tab === "echanges" && <Card title="Échanges sur le projet"><Comments entity="projects" entityId={p.id} /></Card>}
       <Confirm open={del} onClose={() => setDel(false)} title="Supprimer le projet" confirmLabel="Supprimer"
         message={<>Le projet <b>{p.name}</b> sera supprimé (suppression logique, conservée dans l'historique et les sauvegardes).</>}
         onConfirm={async () => { try { await api.del(`/api/projects/${p.id}?version=${p.version}`); await reloadProjects(); setProjectId(null); nav("/projets"); } catch (e) { toastError(e); } }} />

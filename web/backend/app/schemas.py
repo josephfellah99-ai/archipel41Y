@@ -285,6 +285,8 @@ class DocumentPatch(Strict):
     confidential: bool | None = None
     description: str | None = None
     linked: dict | None = None
+    status: Literal["travail", "valide", "archive"] | None = None
+    related_ids: list[str] | None = None
 
     @field_validator("category")
     @classmethod
@@ -404,6 +406,23 @@ class ProposalIn(Strict):
 
 
 # ---------------------------------------------------------------- Utilisateurs
+class UserPermissions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    modules: dict[str, Literal["none", "read", "write", "full"]] = {}
+    projects: dict[str, Literal["none", "read", "write"]] = {}
+    assigned_only: bool = False
+
+    @field_validator("modules")
+    @classmethod
+    def _known_modules(cls, v):
+        from .security import MODULES
+
+        unknown = set(v) - set(MODULES)
+        if unknown:
+            raise ValueError(f"Module(s) inconnu(s) : {', '.join(sorted(unknown))}.")
+        return v
+
+
 class UserCreate(Strict):
     email: EmailStr
     full_name: str = Field(min_length=1, max_length=200)
@@ -412,6 +431,7 @@ class UserCreate(Strict):
     job_title: str | None = None
     phone: str | None = None
     color: str | None = None
+    permissions: UserPermissions | None = None
 
 
 class UserUpdate(Strict):
@@ -423,12 +443,36 @@ class UserUpdate(Strict):
     color: str | None = None
     password: str | None = None
     preferences: dict | None = None
+    permissions: UserPermissions | None = None
     version: int | None = None
 
 
 class LoginIn(BaseModel):
     email: str
     password: str
+    mode: Literal["admin", "collaborateur"] | None = None
+
+
+class InvitationIn(Strict):
+    kind: Literal["demo", "projet"]
+    label: str = Field(min_length=1, max_length=200)
+    guest_name: str | None = Field(None, max_length=200)
+    guest_email: EmailStr | None = None
+    valid_days: int = Field(7, ge=1, le=365)
+    expires_at: datetime | None = None
+    max_uses: int = Field(5, ge=1, le=1000)
+    project_ids: list[str] = []
+    modules: list[Literal["fiche", "documents", "planning", "terrain"]] = ["fiche", "documents"]
+    doc_categories: list[str] = []
+    can_download: bool = False
+    can_comment: bool = False
+    session_hours: int = Field(8, ge=1, le=72)
+
+    @model_validator(mode="after")
+    def _projects_required(self):
+        if self.kind == "projet" and not self.project_ids:
+            raise ValueError("Une invitation à un projet doit désigner au moins un projet.")
+        return self
 
 
 class SetupIn(Strict):

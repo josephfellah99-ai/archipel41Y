@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
 
-from .routers import agenda, assistant, auth, documents, entities, insights, planning, quotes, reports, system, urbanisme  # noqa: E402
+from .routers import agenda, assistant, auth, collab, documents, entities, guest, insights, planning, quotes, reports, system, urbanisme  # noqa: E402
 
 log = logging.getLogger("archipel41")
 
@@ -112,7 +112,7 @@ def create_app(migrate: bool = True) -> FastAPI:
         return {"status": "ok", "version": APP_VERSION, "mode": s.mode}
 
     # Les routes spécifiques précèdent les routes CRUD génériques (/{id})
-    for r in (auth.router, documents.router, quotes.router, agenda.router, planning.router, urbanisme.router,
+    for r in (auth.router, guest.router, collab.router, documents.router, quotes.router, agenda.router, planning.router, urbanisme.router,
               assistant.router, insights.router, reports.router, system.router, entities.extra, *entities.routers):
         app.include_router(r)
 
