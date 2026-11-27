@@ -68,6 +68,9 @@ def setup(payload: SetupIn, request: Request, db: Session = Depends(get_db)):
     db.flush()
     record_change(db, admin, "create", admin)
     audit(db, admin, "setup", "agencies", agency.id, f"Création de l'agence {agency.name}", request)
+    admin.last_login_at = utcnow()
+    log_connection(db, kind="admin", success=True, request=request, agency_id=agency.id, user_id=admin.id, identity=admin.email,
+                   reason="création de l'agence")
     db.commit()
     return {"token": create_access_token(admin), "user": user_out(admin)}
 

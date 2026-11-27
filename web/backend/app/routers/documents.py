@@ -181,13 +181,9 @@ def page_count(doc_id: str, version: int | None = None, user: User = Depends(req
     v = _version(db, d, version)
     if (d.extension or "").lower() != "pdf":
         return {"pages": 0}
-    import pypdfium2 as pdfium
+    from ai.document_analysis.pdfium_safe import page_count as _count
 
-    pdf = pdfium.PdfDocument(str(storage.path_for(v.storage_key)))
-    try:
-        return {"pages": len(pdf)}
-    finally:
-        pdf.close()
+    return {"pages": _count(storage.path_for(v.storage_key))}
 
 
 @router.get("/{doc_id}/page/{n}")
@@ -196,20 +192,13 @@ def page_image(doc_id: str, n: int, version: int | None = None, scale: float = 1
     """Aperçu d'une page PDF rendue en image côté serveur (fiable sans visionneuse PDF)."""
     d = get_owned(db, Document, doc_id, user)
     v = _version(db, d, version)
-    import io as _io
+    from ai.document_analysis.pdfium_safe import render_png
 
-    import pypdfium2 as pdfium
-
-    pdf = pdfium.PdfDocument(str(storage.path_for(v.storage_key)))
     try:
-        if n < 1 or n > len(pdf):
-            raise HTTPException(404, "Page inexistante.")
-        img = pdf[n - 1].render(scale=max(0.5, min(scale, 3.0))).to_pil()
-        buf = _io.BytesIO()
-        img.save(buf, "PNG", optimize=True)
-    finally:
-        pdf.close()
-    return Response(buf.getvalue(), media_type="image/png", headers={"Cache-Control": "private, max-age=3600"})
+        png = render_png(storage.path_for(v.storage_key), n, scale)
+    except IndexError:
+        raise HTTPException(404, "Page inexistante.")
+    return Response(png, media_type="image/png", headers={"Cache-Control": "private, max-age=3600"})
 
 
 @router.get("/{doc_id}/text")

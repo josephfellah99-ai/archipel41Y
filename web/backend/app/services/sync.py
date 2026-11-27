@@ -358,10 +358,14 @@ def relink_agency(db: Session, old: str, new: str, name: str) -> str:
         db.add(Agency(id=new, name=name, siret=old_agency.siret if old_agency else None,
                       address=old_agency.address if old_agency else None))
         db.flush()
-    from ..models import AuditLog, DocumentChunk
+    from ..models import (AuditLog, CalendarAccount, ConnectionLog, DocumentChunk, ErrorLog, GuestSession, Invitation)
 
-    for model in list(SYNC_MODELS.values()) + [Setting, ChangeLog, AuditLog, SyncConflict, DocumentChunk]:
+    for model in list(SYNC_MODELS.values()) + [Setting, ChangeLog, AuditLog, SyncConflict, DocumentChunk, ConnectionLog, ErrorLog,
+                                               Invitation, GuestSession, CalendarAccount]:
         db.query(model).filter(model.agency_id == old).update({"agency_id": new}, synchronize_session=False)
+    from .journal import reseal_agency
+
+    reseal_agency(db, new)  # l'identifiant d'agence entre dans l'empreinte du journal chaîné
     for model in SYNC_MODELS.values():
         db.query(model).filter(model.agency_id == new).update({"dirty": True, "base_version": 0}, synchronize_session=False)
     for v in db.query(DocumentVersion).filter(DocumentVersion.agency_id == new):

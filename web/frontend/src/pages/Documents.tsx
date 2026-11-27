@@ -10,13 +10,30 @@ import { Card, Empty, ErrorBox, Field, Modal, Notice, PageHeader, Select, Spinne
 const PREVIEWABLE = new Set(["pdf", "png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "txt", "md", "csv"]);
 const TEXT_STATUS: Record<string, string> = { ok: "Texte extrait", ocr: "Texte extrait par OCR", vide: "Aucun texte", non_supporte: "Format non analysé", erreur: "Erreur d'extraction", en_attente: "En attente" };
 
+/** File d'attente : les pages sont rendues l'une après l'autre (jamais en parallèle), ce qui ménage le
+ *  moteur local et affiche la première page au plus vite. */
+let pageQueue: Promise<unknown> = Promise.resolve();
+function queued<T>(job: () => Promise<T>): Promise<T> {
+  const run = pageQueue.then(job, job);
+  pageQueue = run.catch(() => undefined);
+  return run;
+}
+
 function PageImage({ docId, n, version }: { docId: string; n: number; version?: number }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let u: string | null = null;
-    blobUrl(`/api/documents/${docId}/page/${n}?scale=1.6${version ? `&version=${version}` : ""}`).then((x) => { u = x; setUrl(x); }).catch(() => {});
-    return () => { if (u) URL.revokeObjectURL(u); };
-  }, [docId, n, version]);
+    let alive = true;
+    setFailed(false);
+    queued(() => (alive ? blobUrl(`/api/documents/${docId}/page/${n}?scale=1.6${version ? `&version=${version}` : ""}`) : Promise.resolve(null)))
+      .then((x) => { if (!x) return; if (alive) { u = x; setUrl(x); } else URL.revokeObjectURL(x); })
+      .catch(() => alive && setFailed(true));
+    return () => { alive = false; if (u) URL.revokeObjectURL(u); };
+  }, [docId, n, version, attempt]);
+  if (failed) return <div className="aspect-[1/1.41] w-full rounded-md bg-sunken flex flex-col items-center justify-center gap-2 text-sm text-muted">
+    Aperçu de la page indisponible.<button className="btn-secondary py-1" onClick={() => setAttempt(attempt + 1)}>Réessayer</button></div>;
   return url ? <img src={url} alt={`Page ${n}`} className="w-full rounded-md border border-line bg-white shadow-sm" loading="lazy" />
     : <div className="aspect-[1/1.41] w-full rounded-md bg-sunken animate-pulse" />;
 }

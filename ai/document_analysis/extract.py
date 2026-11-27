@@ -127,7 +127,10 @@ def _extract_pdf(path: Path, res: ExtractResult, tesseract_cmd: str | None) -> N
             if len(text.strip()) < 25:
                 # Page probablement scannée → OCR
                 try:
-                    img = page.to_image(resolution=300).original
+                    from .pdfium_safe import PDFIUM_LOCK
+
+                    with PDFIUM_LOCK:  # pdfplumber.to_image utilise pdfium : jamais en parallèle
+                        img = page.to_image(resolution=300).original
                     pg.text = _ocr_image(img, tesseract_cmd)
                     pg.ocr = True
                     ocr_pages += 1

@@ -324,26 +324,20 @@ def guest_page(doc_id: str, n: int, request: Request, db: Session = Depends(get_
     """Aperçu page par page (consultation sans téléchargement du fichier source)."""
     g = _guest(request, db)
     d = _guest_doc(db, g, doc_id)
+    from ai.document_analysis.pdfium_safe import render_png
+
     from ..routers.documents import _version
     from ..services import storage
-    import io as _io
-
-    import pypdfium2 as pdfium
 
     v = _version(db, d, None)
-    pdf = pdfium.PdfDocument(str(storage.path_for(v.storage_key)))
     try:
-        if n < 1 or n > len(pdf):
-            raise HTTPException(404, "Page inexistante.")
-        img = pdf[n - 1].render(scale=1.4).to_pil()
-        buf = _io.BytesIO()
-        img.save(buf, "PNG", optimize=True)
-    finally:
-        pdf.close()
+        png = render_png(storage.path_for(v.storage_key), n, 1.4)
+    except IndexError:
+        raise HTTPException(404, "Page inexistante.")
     if n == 1:
         _log_view(db, g, request, f"aperçu de « {d.name} »", "documents", d.id)
         db.commit()
-    return Response(buf.getvalue(), media_type="image/png", headers={"Cache-Control": "no-store"})
+    return Response(png, media_type="image/png", headers={"Cache-Control": "no-store"})
 
 
 @router.get("/guest/projects/{project_id}/planning")

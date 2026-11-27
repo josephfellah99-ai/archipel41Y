@@ -256,17 +256,34 @@ def test_notifications_respect_confidentiality(client, agency):
     assert not any(n["project_id"] == p["id"] for n in client.get("/api/notifications", headers=agency["member"]).json()["items"])
 
 
-# ------------------------------------------------------------------ journal chaîné
-def test_audit_chain_detects_tampering(client, agency, project):
+# ------------------------------------------------------------------ journal chaîné et protégé
+def test_audit_log_protected_and_chain_detects_deletion(client, agency, project):
+    import sqlalchemy as sa
+
     from app.db import SessionLocal
     from app.models import AuditLog
     from app.services.journal import verify_chain
 
+    for i in range(3):
+        client.post("/api/lots", json={"project_id": project["id"], "code": f"0{i}", "name": f"Lot {i}"}, headers=agency["admin"])
     db = SessionLocal()
     assert verify_chain(db, agency["agency_id"])["intact"]
-    e = db.query(AuditLog).filter(AuditLog.agency_id == agency["agency_id"], AuditLog.hash.isnot(None)).first()
-    e.summary = "falsifié"
-    db.commit()
-    res = verify_chain(db, agency["agency_id"])
+    rows = db.query(AuditLog).filter(AuditLog.agency_id == agency["agency_id"], AuditLog.hash.isnot(None)).order_by(AuditLog.at).all()
+    assert len(rows) >= 3
+    # modification directe en base : refusée par le déclencheur (SQLite et PostgreSQL)
+    with pytest.raises(sa.exc.DBAPIError):
+        db.execute(sa.text("UPDATE audit_logs SET summary='falsifié' WHERE id=:i"), {"i": rows[1].id})
+        db.commit()
+    db.rollback()
+    if db.bind.dialect.name == "postgresql":
+        with pytest.raises(sa.exc.DBAPIError):
+            db.execute(sa.text("DELETE FROM audit_logs WHERE id=:i"), {"i": rows[1].id})
+            db.commit()
+        db.rollback()
+    else:
+        # SQLite : une suppression au milieu du journal est détectée par le chaînage
+        db.execute(sa.text("DELETE FROM audit_logs WHERE id=:i"), {"i": rows[1].id})
+        db.commit()
+        res = verify_chain(db, agency["agency_id"])
+        assert not res["intact"] and res["anomalies"][0]["probleme"] == "entrée précédente supprimée"
     db.close()
-    assert not res["intact"] and res["anomalies"][0]["probleme"] == "contenu modifié après enregistrement"

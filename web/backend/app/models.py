@@ -534,7 +534,7 @@ class ErrorLog(Base):
     agency_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
-    severity: Mapped[str] = mapped_column(String(12))        # info|avertissement|erreur|critique
+    severity: Mapped[str] = mapped_column(String(20))        # info|avertissement|erreur|critique
     source: Mapped[str] = mapped_column(String(20))          # api|sync|import|validation|calcul|chargement|base|python|javascript|document
     module: Mapped[str | None] = mapped_column(String(40), nullable=True)
     message: Mapped[str] = mapped_column(Text)

@@ -133,7 +133,7 @@ def upgrade():
     sa.Column('agency_id', sa.String(length=36), nullable=True),
     sa.Column('user_id', sa.String(length=36), nullable=True),
     sa.Column('at', app.db.UTCDateTime(timezone=True), nullable=False),
-    sa.Column('severity', sa.String(length=12), nullable=False),
+    sa.Column('severity', sa.String(length=20), nullable=False),
     sa.Column('source', sa.String(length=20), nullable=False),
     sa.Column('module', sa.String(length=40), nullable=True),
     sa.Column('message', sa.Text(), nullable=False),
@@ -350,3 +350,52 @@ def downgrade():
 
     op.drop_table('calendar_accounts')
     # ### end Alembic commands ###
+
+
+# --------------------------------------------------------------------------- protection des journaux
+# Ajoutée après la génération automatique : empêche toute modification directe du journal d'activité
+# en base. PostgreSQL : modification ET suppression refusées, sauf purge explicite de l'application
+# (variable de session archipel.allow_log_purge). SQLite (poste) : modification refusée ; une suppression
+# hors purge reste détectable par le chaînage des empreintes.
+def _protect_logs():
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute("""
+            CREATE OR REPLACE FUNCTION archipel_protect_audit() RETURNS trigger AS $$
+            BEGIN
+              IF TG_OP = 'DELETE' AND current_setting('archipel.allow_log_purge', true) = 'on' THEN
+                RETURN OLD;
+              END IF;
+              RAISE EXCEPTION 'Journal d''activité protégé : modification interdite';
+            END $$ LANGUAGE plpgsql""")
+        op.execute("DROP TRIGGER IF EXISTS trg_protect_audit ON audit_logs")
+        op.execute("CREATE TRIGGER trg_protect_audit BEFORE UPDATE OR DELETE ON audit_logs FOR EACH ROW EXECUTE FUNCTION archipel_protect_audit()")
+    else:
+        op.execute("DROP TRIGGER IF EXISTS trg_protect_audit")
+        # Le contenu des entrées est intouchable ; seul le rattachement d'un poste à l'agence du serveur central
+        # (agency_id) et le recalcul du chaînage qui s'ensuit (hash, prev_hash) restent possibles.
+        op.execute("""CREATE TRIGGER trg_protect_audit BEFORE UPDATE OF id, user_id, at, action, entity, entity_id, summary, ip,
+                      module, project_id, changes, result, actor_label ON audit_logs
+                      BEGIN SELECT RAISE(ABORT, 'Journal d''activité protégé : modification interdite'); END""")
+
+
+def _unprotect_logs():
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute("DROP TRIGGER IF EXISTS trg_protect_audit ON audit_logs")
+        op.execute("DROP FUNCTION IF EXISTS archipel_protect_audit()")
+    else:
+        op.execute("DROP TRIGGER IF EXISTS trg_protect_audit")
+
+
+_generated_upgrade, _generated_downgrade = upgrade, downgrade
+
+
+def upgrade():  # noqa: F811
+    _generated_upgrade()
+    _protect_logs()
+
+
+def downgrade():  # noqa: F811
+    _unprotect_logs()
+    _generated_downgrade()

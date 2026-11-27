@@ -99,7 +99,13 @@ async function raw(method: string, path: string, body?: any, extraHeaders: Recor
     setToken(null);
     window.dispatchEvent(new Event("a41:logout"));
   }
-  if (!res.ok) throw new ApiError(res.status, errorMessage(data, res.status), data);
+  if (!res.ok) {
+    if (res.status >= 500 && !data?.ref && !path.includes("/client-errors")) {
+      // erreur serveur non consignée par le moteur (ex. proxy, moteur indisponible) : signalée depuis l'interface
+      import("./errors").then((m) => m.reportClientError("api", errorMessage(data, res.status), { api: path, status: res.status })).catch(() => {});
+    }
+    throw new ApiError(res.status, errorMessage(data, res.status), data);
+  }
   return data;
 }
 

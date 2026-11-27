@@ -114,16 +114,31 @@ def seal(db: Session, e: AuditLog) -> None:
     db.info[key] = e.hash
 
 
+def reseal_agency(db: Session, agency_id: str) -> int:
+    """Recalcule le chaînage d'une agence (après rattachement d'un poste à l'agence du serveur central :
+    l'identifiant d'agence fait partie de l'empreinte). Le contenu des entrées n'est pas modifié."""
+    db.flush()
+    prev = None
+    n = 0
+    for e in db.query(AuditLog).filter(AuditLog.agency_id == agency_id).order_by(AuditLog.at.asc(), AuditLog.id.asc()):
+        e.prev_hash = prev
+        e.hash = _entry_digest(e, prev)
+        prev = e.hash
+        n += 1
+    db.info[("audit_last", agency_id)] = prev
+    return n
+
+
 def verify_chain(db: Session, agency_id: str) -> dict:
     """Recalcule le chaînage : signale toute entrée modifiée, supprimée ou insérée hors application."""
     rows = (db.query(AuditLog).filter(AuditLog.agency_id == agency_id, AuditLog.hash.isnot(None))
             .order_by(AuditLog.at.asc(), AuditLog.id.asc()).all())
     by_hash = {r.hash: r for r in rows}
     broken = []
-    for r in rows:
+    for i, r in enumerate(rows):
         if r.hash != _entry_digest(r, r.prev_hash):
             broken.append({"id": r.id, "at": r.at.isoformat(), "probleme": "contenu modifié après enregistrement"})
-        elif r.prev_hash and r.prev_hash not in by_hash:
+        elif r.prev_hash and r.prev_hash not in by_hash and i > 0:  # la plus ancienne entrée restante peut suivre une purge
             broken.append({"id": r.id, "at": r.at.isoformat(), "probleme": "entrée précédente supprimée"})
     return {"entries": len(rows), "intact": not broken, "anomalies": broken[:50]}
 

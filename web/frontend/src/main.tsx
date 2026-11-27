@@ -7,6 +7,9 @@ import "@fontsource/inter/600.css";
 import "./index.css";
 import App from "./App";
 import { AppProvider } from "./lib/app";
+import { installErrorReporting } from "./lib/errors";
+
+installErrorReporting();
 
 // PWA : service worker (cache de l'application pour l'usage hors connexion) – navigateur uniquement
 if (!(window as any).archipelDesktop && "serviceWorker" in navigator && import.meta.env.PROD) {
