@@ -17,7 +17,7 @@ function Shell({ children, title, subtitle }: { children: React.ReactNode; title
           <p className="text-3xl font-light leading-snug max-w-md">L'assistant numérique des agences d'architecture.</p>
           <p className="mt-4 text-white/70 max-w-md text-sm dark:text-bg/70">Projets, chantiers, devis, urbanisme, planning, finances et documents – réunis, analysés et sécurisés.</p>
         </div>
-        <p className="text-xs text-white/50 dark:text-bg/60">Version 1.0 · Données hébergées par votre agence</p>
+        <p className="text-xs text-white/50 dark:text-bg/60">Version 1.1 · Données hébergées par votre agence</p>
       </div>
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-md">

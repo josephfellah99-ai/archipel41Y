@@ -13,7 +13,7 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 ROOT_DIR = Path(__file__).resolve().parents[3]  # .../ARCHIPEL41
 
 
