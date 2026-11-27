@@ -29,6 +29,7 @@ GUIDES = {
     "utilisation": ("GUIDE_UTILISATION_ARCHIPEL41.pdf", "Guide d'utilisation détaillé"),
     "installation": ("GUIDE_INSTALLATION_ARCHIPEL41.pdf", "Guide d'installation"),
     "technique": ("DOCUMENTATION_TECHNIQUE.pdf", "Documentation technique"),
+    "hebergement": ("GUIDE_HEBERGEMENT_ET_TEST_ARCHIPEL41.pdf", "Héberger et tester, pas à pas"),
 }
 
 

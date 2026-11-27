@@ -7,6 +7,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import doc_technique  # noqa: E402
+import guide_hebergement  # noqa: E402
 import guide_installation  # noqa: E402
 import guide_utilisation  # noqa: E402
 
@@ -15,7 +16,8 @@ DATE = date.today().strftime("%d/%m/%Y")
 OUT = HERE.parent
 TARGETS = [(guide_installation, "GUIDE_INSTALLATION_ARCHIPEL41.pdf", "Guide d'installation et de démarrage"),
            (guide_utilisation, "GUIDE_UTILISATION_ARCHIPEL41.pdf", "Guide utilisateur"),
-           (doc_technique, "DOCUMENTATION_TECHNIQUE.pdf", "Documentation technique")]
+           (doc_technique, "DOCUMENTATION_TECHNIQUE.pdf", "Documentation technique"),
+           (guide_hebergement, "GUIDE_HEBERGEMENT_ET_TEST_ARCHIPEL41.pdf", "Hébergement et test")]
 
 for module, pdf, short in TARGETS:
     doc = module.build()

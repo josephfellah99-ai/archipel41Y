@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r web/backend/requirements-server.txt
 COPY web/backend/app web/backend/app
 COPY ai ai
 COPY database database
+COPY scripts/install/reset_admin_password.py scripts/install/reset_admin_password.py
+COPY docs/*.pdf docs/
 COPY --from=front /src/web/frontend/dist web/frontend/dist
 RUN useradd -r -u 1041 archipel && mkdir -p /data && chown archipel /data
 USER archipel
