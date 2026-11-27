@@ -269,7 +269,7 @@ function TerrainSheet({ project, onSaved }: { project: any; onSaved: () => void 
   const save = async () => {
     try {
       const { toNum } = await import("../lib/format");
-      await api.put(`/api/projects/${project.id}`, { terrain: { ...t, superficie_m2: t.superficie_m2 === "" ? null : t.superficie_m2 }, latitude: toNum(v.latitude, "Latitude"), longitude: toNum(v.longitude, "Longitude"),
+      await api.put(`/api/projects/${project.id}`, { terrain: { ...t, superficie_m2: toNum(t.superficie_m2, "Superficie du terrain") }, latitude: toNum(v.latitude, "Latitude"), longitude: toNum(v.longitude, "Longitude"),
         address: v.address || null, postal_code: v.postal_code || null, city: v.city || null, version: project.version });
       ed.markSaved(); toast("Fiche terrain enregistrée."); onSaved();
     } catch (e: any) { toastError(e); }

@@ -244,7 +244,8 @@ function Terrain({ project, onSave, canEdit }: { project: any; onSave: (p: any) 
       {canEdit && <AsyncButton onClick={async () => { if (await onSave({ terrain: t, latitude: coords.latitude, longitude: coords.longitude })) ed.markSaved(); }}><Save size={15} /> Enregistrer</AsyncButton>}</>}>
       <StaleNotice stale={ed.stale} onDiscard={ed.discard} />
       <div className="grid sm:grid-cols-2 gap-3">
-        {fields.map(([k, l]) => <Field key={k} label={l}><input className="input" disabled={!canEdit} value={t[k] ?? ""} onChange={(e) => setT({ ...t, [k]: e.target.value })} /></Field>)}
+        {fields.map(([k, l]) => <Field key={k} label={l}>{k.endsWith("_m2") ? <NumberInput min={0} suffix="m²" disabled={!canEdit} value={t[k] ?? ""} onChange={(v) => setT({ ...t, [k]: v })} />
+          : <input className="input" disabled={!canEdit} value={t[k] ?? ""} onChange={(e) => setT({ ...t, [k]: e.target.value })} />}</Field>)}
         <Field label="Latitude (WGS84)" hint="Ex. 47,2184 — renseignée automatiquement par l'analyse urbanistique ou la météo."><NumberInput min={-90} max={90} disabled={!canEdit} value={coords.latitude} onChange={(v) => setCoords({ ...coords, latitude: v })} /></Field>
         <Field label="Longitude (WGS84)" hint="Ex. -1,5536"><NumberInput min={-180} max={180} disabled={!canEdit} value={coords.longitude} onChange={(v) => setCoords({ ...coords, longitude: v })} /></Field>
       </div>

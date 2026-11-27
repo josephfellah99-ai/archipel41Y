@@ -518,7 +518,8 @@ def sync_account(db: Session, acc: CalendarAccount) -> CalendarSyncLog:
         entry.message = (f"{entry.created} création(s), {entry.updated} modification(s), {entry.deleted} suppression(s)"
                          + (f", {entry.conflicts} conflit(s) résolu(s) selon la règle « {RULES[rule]} »" if entry.conflicts else "") + ".")
     except (CalendarError, httpx.HTTPError) as ex:
-        msg = str(ex) if isinstance(ex, CalendarError) else f"{p.label} injoignable : {type(ex).__name__}"
+        from .net import explain
+        msg = str(ex) if isinstance(ex, CalendarError) else explain(ex, p.label)
         entry.success, entry.message = False, msg
         acc.last_error = msg
         if isinstance(ex, CalendarError) and ex.status == 401:

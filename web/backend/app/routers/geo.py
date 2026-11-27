@@ -188,7 +188,8 @@ def add_service(pid: str, payload: dict, request: Request, user: User = Depends(
             r.raise_for_status()
             res = geoformats.read_geojson(r.content)
         except (httpx.HTTPError, geoformats.GeoError) as ex:
-            raise HTTPException(502, f"Service WFS injoignable ou réponse invalide : {type(ex).__name__} {str(ex)[:150]}")
+            from ..services.net import explain
+            raise HTTPException(502, explain(ex, "Le service WFS") if isinstance(ex, httpx.HTTPError) else f"Réponse du service WFS illisible : {ex}")
         layer = _store_layer(db, user, request, pid, name, res, source_format="WFS")
         layer.service = {"url": url, "layers": layers, "kind": "wfs"}
         layer.kind = "wfs"

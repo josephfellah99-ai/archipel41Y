@@ -89,7 +89,8 @@ class SiteAnalyzer:
             self.sources.append({"source": label, "url": str(r.url), "consulted_at": now_iso()})
             return data
         except httpx.HTTPError as exc:
-            self.unavailable.append({"source": label, "reason": f"Service injoignable ou en erreur : {type(exc).__name__}"})
+            from .net import explain
+            self.unavailable.append({"source": label, "reason": explain(exc, "Le service")})
         except ValueError:
             self.unavailable.append({"source": label, "reason": "Réponse illisible du service."})
         return None

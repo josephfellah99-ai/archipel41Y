@@ -230,3 +230,22 @@ def test_layers_annotations_export_and_services(client, monkeypatch):
     assert 99 < m["length_m"] < 101
     par = client.get("/api/geo/parcel?lat=47.2184&lon=-1.5536", headers=a).json()
     assert "notice" in par and (par["found"] or par["reason"])
+
+
+def test_terrain_numbers_french_format(client, agency, project):
+    """Fiche terrain : « 4 250,5 » m² est enregistré comme le nombre 4250,5 (et non comme du texte) ;
+    une valeur illisible ou négative est refusée avec un message explicite ; un champ vide devient nul."""
+    h = agency["admin"]
+    r = client.put(f"/api/projects/{project['id']}", json={"terrain": {"parcelle": "27438 ZB 112", "superficie_m2": "4 250,5",
+                                                                        "surface_cadastrale_m2": "", "zone_plu": "UZ"},
+                                                            "version": project["version"]}, headers=h)
+    assert r.status_code == 200, r.text
+    t = r.json()["terrain"]
+    assert t["superficie_m2"] == 4250.5 and isinstance(t["superficie_m2"], float)
+    assert t["surface_cadastrale_m2"] is None and t["parcelle"] == "27438 ZB 112" and t["zone_plu"] == "UZ"
+    v = r.json()["version"]
+    bad = client.put(f"/api/projects/{project['id']}", json={"terrain": {"superficie_m2": "env. 4000"}, "version": v}, headers=h)
+    assert bad.status_code == 422 and "superficie_m2" in bad.text
+    neg = client.put(f"/api/projects/{project['id']}", json={"terrain": {"superficie_m2": "-12"}, "version": v}, headers=h)
+    assert neg.status_code == 422
+    assert client.get(f"/api/projects/{project['id']}", headers=h).json()["terrain"]["superficie_m2"] == 4250.5

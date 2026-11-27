@@ -38,22 +38,30 @@ class FrenchNumbers(BaseModel):
     def _fr_numbers(cls, data):
         if not isinstance(data, dict):
             return data
-        from ai.document_analysis.numbers import parse_number
-
         out = dict(data)
         for name, f in cls.model_fields.items():
             v = out.get(name)
             if isinstance(v, str) and _numeric_field(f.annotation):
-                if not v.strip():
-                    out[name] = None
-                    continue
-                raw = v.replace("%", "").strip()
-                # « 47.218 » (point décimal seul) : lecture standard, jamais comme séparateur de milliers
-                n = float(raw) if __import__("re").fullmatch(r"-?\d+\.\d+", raw) else parse_number(raw)
-                if n is None:
-                    raise ValueError(f"{name} : « {v} » n'est pas un nombre valide.")
-                out[name] = int(n) if (int in typing_args(f.annotation) and float not in typing_args(f.annotation) and n == int(n)) else float(n)
+                n = fr_number(name, v)
+                out[name] = n if n is None else (int(n) if (int in typing_args(f.annotation) and float not in typing_args(f.annotation) and n == int(n)) else float(n))
         return out
+
+
+def fr_number(name: str, v: str) -> float | None:
+    """Lit un nombre saisi à la française ; chaîne vide → None ; valeur illisible → erreur explicite."""
+    from ai.document_analysis.numbers import parse_number
+
+    if not v.strip():
+        return None
+    raw = v.replace("%", "").strip()
+    # « 47.218 » (point décimal seul) : lecture standard, jamais comme séparateur de milliers
+    n = float(raw) if __import__("re").fullmatch(r"-?\d+\.\d+", raw) else parse_number(raw)
+    if n is None:
+        raise ValueError(f"{name} : « {v} » n'est pas un nombre valide.")
+    return float(n)
+
+
+TERRAIN_NUMERIC = __import__("re").compile(r".*_(m2|m|ml|ha|pct|nb)$")
 
 
 def typing_args(annotation):
@@ -187,6 +195,18 @@ class ProjectIn(Strict):
         if self.start_date and self.end_date and self.end_date < self.start_date:
             raise ValueError("La date de fin doit être postérieure à la date de début.")
         return self
+
+    @field_validator("terrain")
+    @classmethod
+    def _terrain_numbers(cls, t: dict[str, Any]) -> dict[str, Any]:
+        out = dict(t or {})
+        for k, v in out.items():
+            if isinstance(v, str) and TERRAIN_NUMERIC.match(k):
+                n = fr_number(f"terrain.{k}", v)
+                if n is not None and n < 0:
+                    raise ValueError(f"terrain.{k} : une valeur positive est attendue.")
+                out[k] = n
+        return out
 
 
 class LotIn(Strict):
