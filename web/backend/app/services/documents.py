@@ -20,8 +20,12 @@ ALLOWED_EXT = {
     ".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".gif", ".svg",
     ".xlsx", ".xlsm", ".xls", ".csv", ".docx", ".doc", ".odt", ".ods", ".txt", ".md", ".rtf",
     ".dwg", ".dxf", ".ifc", ".pln", ".pla", ".rvt", ".skp", ".3dm", ".zip", ".pptx", ".msg", ".eml",
+    # données géographiques (module Terrain) : vecteurs, rasters calés, modèles numériques de terrain
+    ".geojson", ".json", ".kml", ".kmz", ".gpx", ".gpkg", ".shp", ".shx", ".dbf", ".prj", ".cpg", ".asc",
+    ".tfw", ".jgw", ".pgw", ".wld",
 }
-CATEGORY_BY_EXT = {".dwg": "plan", ".dxf": "plan", ".pln": "maquette", ".pla": "maquette", ".ifc": "maquette",
+CATEGORY_BY_EXT = {".geojson": "urbanisme", ".kml": "urbanisme", ".kmz": "urbanisme", ".gpkg": "urbanisme", ".gpx": "urbanisme",
+                   ".asc": "urbanisme", ".dwg": "plan", ".dxf": "plan", ".pln": "maquette", ".pla": "maquette", ".ifc": "maquette",
                    ".rvt": "maquette", ".jpg": "photo", ".jpeg": "photo", ".png": "photo"}
 
 

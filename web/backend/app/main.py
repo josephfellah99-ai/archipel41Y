@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse, JSONResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
 
-from .routers import agenda, assistant, auth, calendar, collab, documents, entities, guest, history, insights, planning, quotes, reports, system, urbanisme  # noqa: E402
+from .routers import agenda, assistant, auth, calendar, collab, documents, entities, geo, guest, history, insights, planning, quotes, reports, system, urbanisme  # noqa: E402
 
 log = logging.getLogger("archipel41")
 
@@ -53,7 +53,7 @@ class SecurityHeaders(BaseHTTPMiddleware):
             h.setdefault("Cache-Control", "no-store")
         elif not request.url.path.startswith("/assets/"):
             h.setdefault("Content-Security-Policy",
-                         "default-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://data.geopf.fr; "
+                         "default-src 'self'; img-src 'self' data: blob: https:; "  # fonds de carte et services cartographiques (images uniquement)
                          "style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-src 'self' blob:; "
                          "object-src 'self' blob:; font-src 'self' data:; worker-src 'self'")
         if request.url.scheme == "https":
@@ -139,7 +139,7 @@ def create_app(migrate: bool = True) -> FastAPI:
         return {"status": "ok", "version": APP_VERSION, "mode": s.mode}
 
     # Les routes spécifiques précèdent les routes CRUD génériques (/{id})
-    for r in (auth.router, guest.router, collab.router, history.router, calendar.router, documents.router, quotes.router, agenda.router, planning.router, urbanisme.router,
+    for r in (auth.router, guest.router, collab.router, history.router, calendar.router, geo.router, documents.router, quotes.router, agenda.router, planning.router, urbanisme.router,
               assistant.router, insights.router, reports.router, system.router, entities.extra, *entities.routers):
         app.include_router(r)
 

@@ -20,6 +20,7 @@ import TeamPage from "./pages/Team";
 import GuestApp from "./pages/Guest";
 import Chantiers from "./pages/Chantiers";
 import HistoryPage from "./pages/History";
+import TerrainPage from "./pages/Terrain";
 
 export default function App() {
   const { user, loading, guest } = useApp();
@@ -38,7 +39,7 @@ export default function App() {
         <Route path="/agenda" element={<Agenda />} />
         <Route path="/planning" element={<Planning />} />
         <Route path="/urbanisme" element={<Urbanisme />} />
-        <Route path="/terrain" element={<Urbanisme />} />
+        <Route path="/terrain" element={<TerrainPage />} />
         <Route path="/chantiers" element={<Chantiers />} />
         <Route path="/equipe" element={<TeamPage />} />
         <Route path="/historique" element={<HistoryPage />} />
