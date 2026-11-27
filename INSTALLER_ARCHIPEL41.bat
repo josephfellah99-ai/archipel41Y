@@ -6,12 +6,12 @@ echo.
 echo Assemblage de l'installateur Archipel41...
 if not exist "Archipel41-Setup.part0" goto manque
 if not exist "Archipel41-Setup.part1" goto manque
-copy /b /y "Archipel41-Setup.part0"+"Archipel41-Setup.part1" "Archipel41-Setup-1.0.0-x64.exe" >nul
+copy /b /y "Archipel41-Setup.part0"+"Archipel41-Setup.part1" "Archipel41-Setup-1.1.0-x64.exe" >nul
 echo Verification de l'integrite du fichier...
-certutil -hashfile "Archipel41-Setup-1.0.0-x64.exe" SHA256 | findstr /i "5751053d09b77aed647c20768b44fc749f2759b25476ab3e8741ad7f8593af81" >nul
+certutil -hashfile "Archipel41-Setup-1.1.0-x64.exe" SHA256 | findstr /i "a539593e16abd9b0f4642341150c9a5c2e3f635ca71fd41ae11e60ff2c00d146" >nul
 if errorlevel 1 goto corrompu
 echo OK. Lancement de l'installation...
-start "" "Archipel41-Setup-1.0.0-x64.exe"
+start "" "Archipel41-Setup-1.1.0-x64.exe"
 exit /b 0
 :manque
 echo ERREUR : les fichiers Archipel41-Setup.part0 et Archipel41-Setup.part1 doivent etre dans ce dossier.

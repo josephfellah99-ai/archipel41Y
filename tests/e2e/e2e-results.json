@@ -1,0 +1,145 @@
+{
+  "date": "2026-11-27T10:37:09.843Z",
+  "results": [
+    {
+      "name": "Installation : création de l'agence et du compte administrateur",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Utilisateurs : création d'un gestionnaire",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Annuaire : client et entreprises créés",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Projets : création du projet et des 10 phases",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Projets : ajout du lot 02",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Devis : import de 3 offres (PDF natif, PDF texte, PDF scanné OCR)",
+      "ok": true,
+      "detail": "3 importé(s)"
+    },
+    {
+      "name": "Devis : import de la DPGF (14 lignes) et du CCTP",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Devis : anomalies de calcul détectées sur l'offre Bâti Ouest",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Devis : correction d'une ligne, recalcul et validation",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Comparateur : tableau comparatif généré",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Comparateur : coût réel probable et leviers d'économie",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Comparateur : remarques techniques avec actions",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Comparateur : export Excel téléchargé",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Agenda : conflit détecté entre deux rendez-vous",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Planning : tâches créées",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Documents : import et recherche dans le contenu",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Assistant : réponse sourcée (mode sans IA générative)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Finances : marché enregistré, TTC calculé",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Rapports : synthèse de projet PDF générée",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Sauvegarde : archive ZIP téléchargée",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Hors connexion : modification mise en file d'attente locale",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Hors connexion : synchronisation automatique au retour du réseau",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Démonstration : espace fictif séparé et signalé",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Planning : analyse météo et propositions à valider",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Urbanisme : analyse de parcelle et du règlement avec indicateurs",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Responsive smartphone 390px : aucun débordement horizontal de page",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Responsive tablette 820px : aucun débordement horizontal de page",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Aucune erreur JavaScript dans le navigateur",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}
