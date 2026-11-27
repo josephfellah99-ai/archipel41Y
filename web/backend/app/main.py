@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 import time
 from logging.handlers import RotatingFileHandler
@@ -20,7 +21,7 @@ from fastapi.responses import FileResponse, JSONResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
 
-from .routers import agenda, assistant, auth, collab, documents, entities, guest, history, insights, planning, quotes, reports, system, urbanisme  # noqa: E402
+from .routers import agenda, assistant, auth, calendar, collab, documents, entities, guest, history, insights, planning, quotes, reports, system, urbanisme  # noqa: E402
 
 log = logging.getLogger("archipel41")
 
@@ -138,7 +139,7 @@ def create_app(migrate: bool = True) -> FastAPI:
         return {"status": "ok", "version": APP_VERSION, "mode": s.mode}
 
     # Les routes spécifiques précèdent les routes CRUD génériques (/{id})
-    for r in (auth.router, guest.router, collab.router, history.router, documents.router, quotes.router, agenda.router, planning.router, urbanisme.router,
+    for r in (auth.router, guest.router, collab.router, history.router, calendar.router, documents.router, quotes.router, agenda.router, planning.router, urbanisme.router,
               assistant.router, insights.router, reports.router, system.router, entities.extra, *entities.routers):
         app.include_router(r)
 
@@ -159,5 +160,9 @@ def create_app(migrate: bool = True) -> FastAPI:
         from .services import sync
 
         sync.start_background()
+    if os.environ.get("ARCHIPEL_ENV") != "test":
+        from .services import calendar_sync
+
+        calendar_sync.start_background()
     log.info("Archipel41 %s démarré (mode %s, base %s)", APP_VERSION, s.mode, "SQLite" if s.is_sqlite else "PostgreSQL")
     return app

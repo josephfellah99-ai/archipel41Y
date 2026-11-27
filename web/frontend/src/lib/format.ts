@@ -60,8 +60,10 @@ export const bytes = (n: number) => (n < 1024 ? `${n} o` : n < 1048576 ? `${(n /
 
 export const STATUS_PROJECT: Record<string, string> = { etude: "Études", consultation: "Consultation", chantier: "Chantier", reception: "Réception", archive: "Archivé" };
 export const LOT_STATUS: Record<string, string> = { a_consulter: "À consulter", consultation: "En consultation", attribue: "Attribué", en_cours: "En cours", receptionne: "Réceptionné" };
-export const EVENT_KINDS: Record<string, string> = { rdv_client: "Rendez-vous client", reunion_entreprise: "Réunion entreprise", visite_chantier: "Visite de chantier", interne: "Interne", autre: "Autre" };
-export const EVENT_COLORS: Record<string, string> = { rdv_client: "#253A33", reunion_entreprise: "#46678C", visite_chantier: "#A07D52", interne: "#718578", autre: "#8A8F8C" };
+export const EVENT_KINDS: Record<string, string> = { rdv_client: "Rendez-vous client", reunion_chantier: "Réunion de chantier", visite_chantier: "Visite de site",
+  reunion_entreprise: "Réunion entreprise", echeance_admin: "Échéance administrative", livrable: "Remise de livrable", interne: "Interne", autre: "Autre" };
+export const EVENT_COLORS: Record<string, string> = { rdv_client: "#253A33", reunion_chantier: "#8C5A2B", visite_chantier: "#A07D52", reunion_entreprise: "#46678C",
+  echeance_admin: "#9C3B29", livrable: "#5E4B8B", echeance_tache: "#B07A26", interne: "#718578", autre: "#8A8F8C" };
 export const QUOTE_STATUS: Record<string, string> = { a_verifier: "À vérifier", valide: "Validé", retenu: "Retenu", rejete: "Rejeté" };
 export const LINE_STATUS: Record<string, string> = { inclus: "Inclus", exclu: "Exclu", optionnel: "Optionnel", variante: "Variante", a_verifier: "À vérifier" };
 export const CMP_STATUS: Record<string, { label: string; cls: string }> = {

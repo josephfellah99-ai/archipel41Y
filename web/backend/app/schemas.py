@@ -250,7 +250,7 @@ class TaskIn(Strict):
 # ---------------------------------------------------------------- Agenda
 class EventIn(Strict):
     title: str = Field(min_length=1, max_length=200)
-    kind: Literal["rdv_client", "reunion_entreprise", "visite_chantier", "interne", "autre"] = "rdv_client"
+    kind: Literal["rdv_client", "reunion_entreprise", "reunion_chantier", "visite_chantier", "echeance_admin", "livrable", "interne", "autre"] = "rdv_client"
     start: datetime
     end: datetime
     all_day: bool = False
@@ -262,6 +262,8 @@ class EventIn(Strict):
     minutes: str | None = None
     document_ids: list[str] = []
     organizer_id: str | None = None
+    client_id: str | None = None
+    company_id: str | None = None
 
     @model_validator(mode="after")
     def order(self):

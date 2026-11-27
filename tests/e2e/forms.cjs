@@ -155,6 +155,14 @@ async function main() {
   await page.waitForSelector("text=Projet enregistré.");
   r = await api(page, "GET", `/api/projects/${pid}`);
   check("Phases : avancement ESQ 80 % enregistré", r.data.phases.find((p) => p.code === "ESQ").progress === 80);
+  // dates de phase (provoquaient une erreur interne avant correction)
+  await page.locator("tr:has-text('ESQ') input[type=date]").first().fill("2026-12-01");
+  await page.locator("tr:has-text('ESQ') input[type=date]").nth(1).fill("2027-01-15");
+  await page.locator("button:has-text('Enregistrer')").first().click();
+  await page.waitForSelector("text=Projet enregistré.");
+  r = await api(page, "GET", `/api/projects/${pid}`);
+  const esq = r.data.phases.find((p) => p.code === "ESQ");
+  check("Phases : dates de début et de fin enregistrées", esq.start === "2026-12-01" && esq.end === "2027-01-15", `${esq.start} → ${esq.end}`);
 
   // lot : budget « 36 000 » et marché « 34 783,50 »
   await page.click("button[role=tab]:has-text('Lots')");

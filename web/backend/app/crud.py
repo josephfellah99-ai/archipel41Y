@@ -47,6 +47,18 @@ def column_names(model) -> set[str]:
     return {c.key for c in inspect(model).column_attrs}
 
 
+def json_columns(model) -> set[str]:
+    """Colonnes JSON : leurs valeurs (dates, décimaux imbriqués…) sont converties avant enregistrement."""
+    from sqlalchemy import JSON
+
+    out = set()
+    for c in inspect(model).column_attrs:
+        t = c.columns[0].type
+        if isinstance(t, JSON) or isinstance(getattr(t, "impl", None), JSON) or "JSON" in type(t).__name__.upper():
+            out.add(c.key)
+    return out
+
+
 def record_change(db: Session, obj, op: str, user: User | None, changes: dict | None = None) -> None:
     """Journalise une modification. En mode bureau, marque l'objet « à synchroniser »."""
     entity = ENTITY_BY_MODEL.get(type(obj))
@@ -121,6 +133,8 @@ def create_obj(db: Session, model, data: dict, user: User, request: Request | No
     cols = column_names(model)
     # password_hash n'est jamais présent dans un schéma de formulaire (extra="forbid") : seul le code serveur le fournit
     data = {k: v for k, v in data.items() if k in cols and k not in {"dirty", "base_version", "agency_id", "version"}}
+    jcols = json_columns(model)
+    data = {k: (jsonable(v) if k in jcols else v) for k, v in data.items()}
     if "project_id" in data and data["project_id"]:
         check_project_access(db, user, data["project_id"], write=True)
     obj = model(**data)
@@ -152,8 +166,11 @@ def update_obj(db: Session, obj, data: dict, user: User, expected_version: int |
     if pid0:
         check_project_access(db, user, pid0, write=True)
     cols = column_names(type(obj))
+    jcols = json_columns(type(obj))
     changes = {}
     for k, v in data.items():
+        if k in jcols:
+            v = jsonable(v)
         if k in cols and k not in INTERNAL_FIELDS | {"id", "agency_id", "version", "created_at"}:
             old = getattr(obj, k)
             if jsonable(old) != jsonable(v):

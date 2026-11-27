@@ -196,3 +196,41 @@ export function useApi<T = any>(path: string | null, deps: any[] = []) {
   }, [load]);
   return { data, error, loading, reload: load, setData, cachedAt };
 }
+
+/**
+ * État de formulaire alimenté par une donnée serveur, PROTÉGÉ contre les rechargements :
+ * tant que l'utilisateur a des modifications non enregistrées, une nouvelle version reçue du serveur
+ * (rechargement en arrière-plan, synchronisation…) ne remplace jamais sa saisie ; `stale` signale
+ * qu'une version plus récente existe. Après un enregistrement réussi, appeler `markSaved()`.
+ */
+export function useEditable<S, T = S>(source: S | null | undefined, map?: (s: S) => T) {
+  const conv = (s: S) => (map ? map(s) : (s as unknown as T));
+  const [value, setRaw] = useState<T | null>(source ? conv(source) : null);
+  const base = useRef<string>(source ? JSON.stringify(conv(source)) : "");
+  const dirty = useRef(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [stale, setStale] = useState(false);
+  useEffect(() => {
+    if (!source) return;
+    const next = conv(source);
+    const key = JSON.stringify(next);
+    if (key === base.current) return; // rechargement sans changement réel : rien à faire
+    base.current = key;
+    if (dirty.current) { setStale(true); return; }
+    setRaw(next);
+    setStale(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source]);
+  const setValue = useCallback((v: T | ((prev: T) => T)) => {
+    dirty.current = true;
+    setIsDirty(true);
+    setRaw((prev) => (typeof v === "function" ? (v as (p: T) => T)(prev as T) : v));
+  }, []);
+  const markSaved = useCallback(() => { dirty.current = false; setIsDirty(false); setStale(false); }, []);
+  const discard = useCallback(() => {
+    dirty.current = false; setIsDirty(false); setStale(false);
+    if (source) { const next = conv(source); base.current = JSON.stringify(next); setRaw(next); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source]);
+  return { value, setValue, dirty: isDirty, stale, markSaved, discard };
+}

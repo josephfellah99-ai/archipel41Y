@@ -2,9 +2,9 @@ import { FolderKanban, Plus, Trash2, Save, AlertTriangle, Lock, ExternalLink } f
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
-import { useApi, useApp } from "../lib/app";
+import { useApi, useApp, useEditable } from "../lib/app";
 import { dateFr, eur, LOT_STATUS, STATUS_PROJECT, toNum } from "../lib/format";
-import { AsyncButton, Card, Confirm, Empty, ErrorBox, Field, Modal, NumberInput, PageHeader, Progress, Select, Spinner, Tabs } from "../components/ui";
+import { AsyncButton, Card, Confirm, Empty, ErrorBox, Field, Modal, Notice, NumberInput, PageHeader, Progress, Select, Spinner, Tabs } from "../components/ui";
 import { DocumentsTable } from "./Documents";
 import { Comments } from "../components/Comments";
 
@@ -96,17 +96,25 @@ export function ProjectsList() {
   );
 }
 
-function Phases({ project, onSave, canEdit }: { project: any; onSave: (patch: any) => Promise<void>; canEdit: boolean }) {
-  const [phases, setPhases] = useState<any[]>(project.phases || []);
-  const [current, setCurrent] = useState(project.current_phase || "");
-  useEffect(() => { setPhases(project.phases || []); setCurrent(project.current_phase || ""); }, [project]);
-  const upd = (i: number, k: string, v: any) => setPhases(phases.map((p, j) => (j === i ? { ...p, [k]: v } : p)));
+export function StaleNotice({ stale, onDiscard }: { stale: boolean; onDiscard: () => void }) {
+  if (!stale) return null;
+  return <div className="mb-3"><Notice tone="warn">Une version plus récente a été enregistrée entre-temps (par vous ou un collègue). Votre saisie est conservée ;
+    enregistrez-la ou <button className="underline" onClick={onDiscard}>chargez la version la plus récente</button> (vos modifications non enregistrées seront abandonnées).</Notice></div>;
+}
+
+function Phases({ project, onSave, canEdit }: { project: any; onSave: (patch: any) => Promise<boolean>; canEdit: boolean }) {
+  const ed = useEditable(project, (p: any) => ({ phases: (p.phases || []) as any[], current: (p.current_phase || "") as string }));
+  const phases = ed.value!.phases;
+  const current = ed.value!.current;
+  const setCurrent = (c: string) => ed.setValue((prev) => ({ ...prev, current: c }));
+  const upd = (i: number, k: string, v: any) => ed.setValue((prev) => ({ ...prev, phases: prev.phases.map((p, j) => (j === i ? { ...p, [k]: v } : p)) }));
   return (
     <Card title="Phases de la mission" actions={canEdit && <AsyncButton onClick={async () => {
       let ph;
       try { ph = phases.map((p) => ({ ...p, progress: toNum(p.progress, `Avancement ${p.code}`) ?? 0 })); } catch (e: any) { alert(e.message); return; }
-      await onSave({ phases: ph, current_phase: current || null });
+      if (await onSave({ phases: ph, current_phase: current || null })) ed.markSaved();
     }}><Save size={15} /> Enregistrer</AsyncButton>}>
+      <StaleNotice stale={ed.stale} onDiscard={ed.discard} />
       <div className="overflow-x-auto"><table className="table">
         <thead><tr><th>Active</th><th>Phase</th><th>Intitulé</th><th>Début</th><th>Fin</th><th>Statut</th><th>Avancement</th><th>En cours</th></tr></thead>
         <tbody>{phases.map((p, i) => (
@@ -201,13 +209,15 @@ function Incidents({ projectId, incidents, reload }: { projectId: string; incide
   );
 }
 
-function Team({ project, users, onSave, canEdit }: { project: any; users: any[]; onSave: (p: any) => Promise<void>; canEdit: boolean }) {
-  const [team, setTeam] = useState<any[]>(project.team || []);
-  useEffect(() => { setTeam(project.team || []); }, [project]);
+function Team({ project, users, onSave, canEdit }: { project: any; users: any[]; onSave: (p: any) => Promise<boolean>; canEdit: boolean }) {
+  const ed = useEditable(project, (p: any) => (p.team || []) as any[]);
+  const team = ed.value!;
+  const setTeam = ed.setValue;
   const free = users.filter((u) => !team.some((m) => m.user_id === u.id));
   const name = Object.fromEntries(users.map((u) => [u.id, u]));
   return (
-    <Card title="Équipe affectée" actions={canEdit && <AsyncButton onClick={() => onSave({ team })}><Save size={15} /> Enregistrer</AsyncButton>}>
+    <Card title="Équipe affectée" actions={canEdit && <AsyncButton onClick={async () => { if (await onSave({ team })) ed.markSaved(); }}><Save size={15} /> Enregistrer</AsyncButton>}>
+      <StaleNotice stale={ed.stale} onDiscard={ed.discard} />
       <ul className="divide-y divide-line">{team.map((m, i) => (
         <li key={m.user_id} className="py-2 flex items-center gap-3">
           <div className="h-8 w-8 rounded-full text-white text-xs flex items-center justify-center" style={{ background: name[m.user_id]?.color || "#718578" }}>{name[m.user_id]?.full_name?.split(" ").map((s: string) => s[0]).join("")}</div>
@@ -220,16 +230,19 @@ function Team({ project, users, onSave, canEdit }: { project: any; users: any[];
   );
 }
 
-function Terrain({ project, onSave, canEdit }: { project: any; onSave: (p: any) => Promise<void>; canEdit: boolean }) {
-  const [t, setT] = useState<any>(project.terrain || {});
-  const [coords, setCoords] = useState({ latitude: project.latitude ?? "", longitude: project.longitude ?? "" });
-  useEffect(() => { setT(project.terrain || {}); setCoords({ latitude: project.latitude ?? "", longitude: project.longitude ?? "" }); }, [project]);
+function Terrain({ project, onSave, canEdit }: { project: any; onSave: (p: any) => Promise<boolean>; canEdit: boolean }) {
+  const ed = useEditable(project, (p: any) => ({ t: (p.terrain || {}) as any, coords: { latitude: p.latitude ?? "", longitude: p.longitude ?? "" } as any }));
+  const t = ed.value!.t;
+  const coords = ed.value!.coords;
+  const setT = (v: any) => ed.setValue((prev) => ({ ...prev, t: v }));
+  const setCoords = (v: any) => ed.setValue((prev) => ({ ...prev, coords: v }));
   const fields = [["parcelle", "Référence(s) cadastrale(s)"], ["surface_cadastrale_m2", "Surface cadastrale (m²)"], ["zone_plu", "Zone du PLU"], ["topographie", "Topographie"],
     ["nature_sol", "Nature du sol / géotechnique"], ["reseaux", "Réseaux disponibles"], ["acces", "Accès et servitudes de passage"], ["notes", "Observations"]];
   return (
     <Card title="Informations du terrain" actions={<>
       <Link to="/urbanisme" className="btn-secondary"><ExternalLink size={14} /> Analyser la parcelle</Link>
-      {canEdit && <AsyncButton onClick={() => onSave({ terrain: t, latitude: coords.latitude, longitude: coords.longitude })}><Save size={15} /> Enregistrer</AsyncButton>}</>}>
+      {canEdit && <AsyncButton onClick={async () => { if (await onSave({ terrain: t, latitude: coords.latitude, longitude: coords.longitude })) ed.markSaved(); }}><Save size={15} /> Enregistrer</AsyncButton>}</>}>
+      <StaleNotice stale={ed.stale} onDiscard={ed.discard} />
       <div className="grid sm:grid-cols-2 gap-3">
         {fields.map(([k, l]) => <Field key={k} label={l}><input className="input" disabled={!canEdit} value={t[k] ?? ""} onChange={(e) => setT({ ...t, [k]: e.target.value })} /></Field>)}
         <Field label="Latitude (WGS84)" hint="Ex. 47,2184 — renseignée automatiquement par l'analyse urbanistique ou la météo."><NumberInput min={-90} max={90} disabled={!canEdit} value={coords.latitude} onChange={(v) => setCoords({ ...coords, latitude: v })} /></Field>
@@ -247,20 +260,23 @@ export function ProjectDetail() {
   const companies = useApi<any[]>("/api/companies");
   const users = useApi<any[]>("/api/users");
   const [tab, setTab] = useState("synthese");
-  const [form, setForm] = useState<any>(null);
+  const fe = useEditable(data?.project, (p: any) => ({ ...emptyProject, ...p }));
+  const form = fe.value;
+  const setForm = fe.setValue;
   const [del, setDel] = useState(false);
   const nav = useNavigate();
-  useEffect(() => { if (data) setForm({ ...emptyProject, ...data.project }); }, [data]);
   useEffect(() => { if (id) setProjectId(id); }, [id, setProjectId]);
   const save = async (patch: any) => {
     try {
       const r = await api.put(`/api/projects/${id}`, { ...clean(patch), version: data.project.version }, `Projet ${data.project.code}`);
       toast(r.__queued ? "Modification enregistrée hors ligne." : "Projet enregistré.");
       reload(); reloadProjects();
+      return true;
     } catch (e: any) {
-      // En cas d'échec, la saisie est conservée : seul un conflit de version recharge la fiche.
-      if (e.status === 409) { toast("Conflit : ce projet a été modifié par un autre utilisateur. La version actuelle a été rechargée.", "error"); reload(); }
+      // En cas d'échec, la saisie est conservée ; en cas de conflit de version, l'utilisateur choisit (bandeau).
+      if (e.status === 409) { toast("Conflit : ce projet a été modifié par un autre utilisateur entre-temps. Votre saisie est conservée.", "error"); reload(); }
       else toastError(e);
+      return false;
     }
   };
   if (loading && !data) return <Spinner />;
@@ -285,7 +301,8 @@ export function ProjectDetail() {
         { id: "terrain", label: "Terrain" }, { id: "equipe", label: `Équipe (${data.team.length})` }, { id: "incidents", label: `Incidents (${data.incidents.length})` },
         { id: "documents", label: `Documents (${data.counts.documents})` }, { id: "echanges", label: "Échanges" }]} />
       {tab === "synthese" && form && (
-        <Card title="Fiche projet" actions={perms.write && <AsyncButton onClick={() => save(form)} disabled={!form.code?.trim() || !form.name?.trim()}><Save size={15} /> Enregistrer</AsyncButton>}>
+        <Card title="Fiche projet" actions={perms.write && <AsyncButton onClick={async () => { if (await save(form)) fe.markSaved(); }} disabled={!form.code?.trim() || !form.name?.trim()}><Save size={15} /> Enregistrer</AsyncButton>}>
+          <StaleNotice stale={fe.stale} onDiscard={fe.discard} />
           <ProjectForm value={form} onChange={setForm} clients={clients.data || []} />
           <div className="grid sm:grid-cols-2 gap-3 mt-3"><Field label="Avancement global (%)"><NumberInput integer min={0} max={100} suffix="%" value={form.progress} onChange={(v) => setForm({ ...form, progress: v })} /></Field></div>
           {data.companies.length > 0 && <div className="mt-4 text-sm"><span className="text-muted">Entreprises suivies : </span>{data.companies.join(" · ")}</div>}

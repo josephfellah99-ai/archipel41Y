@@ -236,8 +236,16 @@ export function QuoteReview() {
   const [showDoc, setShowDoc] = useState(true);
   const [busy, setBusy] = useState(false);
   const dpgf = useApi<any[]>(q ? `/api/dpgf-items?project_id=${q.project_id}${q.lot_id ? `&lot_id=${q.lot_id}` : ""}` : null);
+  const dirtyRef = useRef(false);
+  useEffect(() => { dirtyRef.current = dirty; }, [dirty]);
+  const [newer, setNewer] = useState(false);
+  const loadedVersion = useRef<number | null>(null);
   useEffect(() => {
     if (!q) return;
+    // une saisie non enregistrée n'est jamais écrasée par un rechargement
+    if (dirtyRef.current && loadedVersion.current !== null && q.version !== loadedVersion.current) { setNewer(true); return; }
+    loadedVersion.current = q.version;
+    setNewer(false);
     setLines(q.lines.map((l: any) => ({ ...l })));
     setHead({ company_id: q.company_id || "", reference: q.reference || "", quote_date: q.quote_date || "", delay_text: q.delay_text || "", delay_days: q.delay_days ?? "",
       validity_days: q.validity_days ?? "", payment_terms: q.payment_terms || "", conditions: q.conditions || [], exclusions: q.exclusions || [], reserves: q.reserves || [],
@@ -273,6 +281,8 @@ export function QuoteReview() {
         total_ht: toNum(l.total_ht, `Ligne ${i + 1} – montant`), vat_rate: toNum(l.vat_rate, `Ligne ${i + 1} – TVA`) }));
       let r = await api.call("PUT", `/api/quotes/${id}`, { ...h, version: q.version });
       r = await api.call("PUT", `/api/quotes/${id}/lines`, { lines: clean });
+      dirtyRef.current = false;
+      setDirty(false);
       setData(r);
       toast("Corrections enregistrées – totaux recalculés par le moteur déterministe.");
     } catch (e: any) {
@@ -298,6 +308,7 @@ export function QuoteReview() {
           {canEdit && <button className="btn-primary" disabled={busy || !dirty} onClick={saveAll}><Save size={15} /> Enregistrer les corrections</button>}
           {perms.validate && <button className="btn-primary" disabled={busy || dirty} title={dirty ? "Enregistrez d'abord vos corrections" : ""} onClick={() => action(`/api/quotes/${id}/validate`, "Devis validé.")}><CheckCircle2 size={15} /> Valider</button>}
         </>} />
+      {newer && <div className="mb-4"><Notice tone="warn">Ce devis a été modifié entre-temps. Votre saisie est conservée ; enregistrez-la ou <button className="underline" onClick={() => { dirtyRef.current = false; setDirty(false); loadedVersion.current = null; reload(); }}>chargez la version la plus récente</button>.</Notice></div>}
       {(q.extraction?.warnings || []).length > 0 && <div className="mb-4"><Notice tone="warn"><ul className="list-disc pl-4">{q.extraction.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}</ul></Notice></div>}
       <div className={`grid gap-6 ${showDoc && preview ? "xl:grid-cols-[1fr_minmax(380px,40%)]" : ""}`}>
         <div className="space-y-6 min-w-0">

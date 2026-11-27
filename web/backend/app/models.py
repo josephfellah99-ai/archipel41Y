@@ -212,6 +212,9 @@ class Event(SyncMixin, Base):
     minutes: Mapped[str | None] = mapped_column(Text, nullable=True)  # compte rendu
     document_ids: Mapped[list] = mapped_column(JSONType, default=list)
     organizer_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    client_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    company_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    source: Mapped[str] = mapped_column(String(20), default="archipel")  # archipel|microsoft|google
 
 
 # --------------------------------------------------------------------------- Documents

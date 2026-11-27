@@ -1,5 +1,6 @@
 import { Settings as Cog, Plus, Save, Plug, Download, Upload, RefreshCw, ShieldCheck, AlertTriangle, Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api, conflictItems, download, dropConflict, flushOutbox, outboxItems } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
 import { bytes, dateTimeFr, ROLE_LABELS, toNum } from "../lib/format";
@@ -253,13 +254,118 @@ function SystemTab() {
   );
 }
 
+const PROVIDER_LABEL: Record<string, string> = { microsoft: "Microsoft 365 / Outlook", google: "Google Agenda" };
+
+function CalendarAdmin() {
+  const { toast, toastError } = useApp();
+  const s = useApi<any>("/api/calendar/settings");
+  const [v, setV] = useState<any>(null);
+  useEffect(() => { if (s.data) setV({ ...s.data, microsoft_client_secret: "", google_client_secret: "" }); }, [s.data]);
+  if (!v) return <Spinner />;
+  const save = async () => {
+    try {
+      await api.call("PUT", "/api/calendar/settings", { microsoft_client_id: v.microsoft_client_id || null, microsoft_tenant: v.microsoft_tenant || "common",
+        google_client_id: v.google_client_id || null, public_base_url: v.public_base_url || null,
+        ...(v.microsoft_client_secret ? { microsoft_client_secret: v.microsoft_client_secret } : {}), ...(v.google_client_secret ? { google_client_secret: v.google_client_secret } : {}) });
+      toast("Configuration des agendas enregistrée."); s.reload();
+    } catch (e) { toastError(e); }
+  };
+  return (
+    <Card title="Configuration de l'agence (administrateur)">
+      <Notice tone="info">Pour proposer la connexion des agendas, enregistrez Archipel41 comme application auprès de Microsoft (portail Entra ID › Inscriptions d'applications)
+        et/ou de Google (Google Cloud Console › API et services › Identifiants, API « Google Calendar » activée), puis reportez ci-dessous l'identifiant et le secret.
+        <div className="mt-2">Adresse de redirection à déclarer : <code className="select-all">{v.redirect_uri}</code></div>
+        <div className="mt-1 text-xs">Autorisations demandées (minimales) — Microsoft : {v.scopes.microsoft.join(", ")} · Google : agenda (événements) et liste des calendriers, adresse e-mail.
+          Pour l'application Windows, choisissez le type « application de bureau / mobile » (adresse locale 127.0.0.1 acceptée quel que soit le port).</div></Notice>
+      <div className="grid md:grid-cols-2 gap-6 mt-4">
+        <div className="space-y-3"><div className="font-medium text-sm">Microsoft 365 / Outlook</div>
+          <Field label="Identifiant d'application (client ID)"><input className="input" value={v.microsoft_client_id || ""} onChange={(e) => setV({ ...v, microsoft_client_id: e.target.value })} /></Field>
+          <Field label="Locataire (tenant)" hint="« common » pour tout compte professionnel ou personnel ; sinon l'identifiant de votre organisation."><input className="input" value={v.microsoft_tenant || ""} onChange={(e) => setV({ ...v, microsoft_tenant: e.target.value })} /></Field>
+          <Secret label="Secret client (facultatif pour une application de bureau)" value={v.microsoft_client_secret} isSet={!!v.microsoft_client_secret_set} onChange={(x) => setV({ ...v, microsoft_client_secret: x })} /></div>
+        <div className="space-y-3"><div className="font-medium text-sm">Google Agenda</div>
+          <Field label="Identifiant client OAuth"><input className="input" value={v.google_client_id || ""} onChange={(e) => setV({ ...v, google_client_id: e.target.value })} /></Field>
+          <Secret label="Secret client" value={v.google_client_secret} isSet={!!v.google_client_secret_set} onChange={(x) => setV({ ...v, google_client_secret: x })} />
+          <Field label="Adresse publique du serveur (facultatif)" hint="Ex. https://archipel41.mon-agence.fr — utilisée pour l'adresse de redirection et les flux ICS."><input className="input" value={v.public_base_url || ""} onChange={(e) => setV({ ...v, public_base_url: e.target.value })} /></Field></div>
+      </div>
+      <SaveBar onSave={save} />
+    </Card>
+  );
+}
+
+function CalendarAccounts() {
+  const { toast, toastError } = useApp();
+  const d = useApi<any>("/api/calendar/accounts");
+  const [logs, setLogs] = useState<{ id: string; rows: any[] } | null>(null);
+  const [ics, setIcs] = useState<string | null>(null);
+  const connect = async (p: string) => {
+    try {
+      const r = await api.call("POST", `/api/calendar/connect/${p}`);
+      if ((window as any).archipelDesktop?.openExternal) { (window as any).archipelDesktop.openExternal(r.authorize_url); toast("Terminez l'autorisation dans votre navigateur, puis revenez ici.", "info"); }
+      else window.location.href = r.authorize_url;
+    } catch (e) { toastError(e); }
+  };
+  const upd = async (id: string, body: any) => { try { await api.call("PUT", `/api/calendar/accounts/${id}`, body); d.reload(); } catch (e) { toastError(e); } };
+  if (d.loading && !d.data) return <Spinner />;
+  const accs = d.data?.accounts || [];
+  return (
+    <div className="space-y-6">
+      <Card title="Mes comptes connectés">
+        <p className="text-sm text-muted mb-3">Vos rendez-vous Archipel41 (dont vous êtes organisateur ou participant) apparaissent dans votre agenda Outlook ou Google, et inversement.
+          Aucun mot de passe n'est demandé ni conservé : la connexion passe par la page officielle de Microsoft ou de Google. Sans compte connecté, l'agenda d'Archipel41 fonctionne normalement.</p>
+        <div className="flex flex-wrap gap-2 mb-4">{(["microsoft", "google"] as const).map((p) => (
+          <button key={p} className="btn-secondary" disabled={!d.data?.available?.[p] || accs.some((a: any) => a.provider === p)} title={!d.data?.available?.[p] ? "Non configuré par l'administrateur" : ""} onClick={() => connect(p)}>
+            <Plug size={15} /> Connecter {PROVIDER_LABEL[p]}</button>))}</div>
+        {!d.data?.available?.microsoft && !d.data?.available?.google && <Notice tone="warn">Aucune connexion d'agenda n'est encore configurée pour l'agence : un administrateur doit renseigner les identifiants d'application ci-dessus.</Notice>}
+        <div className="space-y-4">{accs.map((a: any) => (
+          <div key={a.id} className="border border-line rounded-lg p-4">
+            <div className="flex flex-wrap items-center gap-2"><b>{a.provider_label}</b><span className="text-sm text-muted">{a.account_email}</span>
+              <span className={`chip ${a.status === "actif" ? "bg-ok/15 text-ok" : a.status === "suspendu" ? "bg-sunken text-muted" : "bg-danger/15 text-danger"}`}>{a.status}</span>
+              <span className="text-xs text-muted ml-auto">{a.last_sync_at ? `Dernière synchronisation : ${dateTimeFr(a.last_sync_at)}` : "Jamais synchronisé"} · {a.links} rendez-vous liés</span></div>
+            {a.last_error && <div className="text-xs text-danger mt-1">{a.last_error}</div>}
+            {a.last_result?.message && !a.last_error && <div className="text-xs text-muted mt-1">{a.last_result.message}</div>}
+            <div className="grid md:grid-cols-2 gap-4 mt-3">
+              <div><div className="label">Calendriers synchronisés</div>{a.calendars.map((c: any) => (
+                <label key={c.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!c.selected} onChange={(e) => upd(a.id, { calendars: a.calendars.map((x: any) => (x.id === c.id ? { ...x, selected: e.target.checked } : x)) })} />
+                  {c.name}{c.primary && <span className="text-xs text-muted">(principal — reçoit les rendez-vous d'Archipel41)</span>}</label>))}</div>
+              <Field label="En cas de modification des deux côtés"><Select value={a.rule} onChange={(v) => upd(a.id, { rule: v })} options={Object.entries(d.data.rules).map(([k, l]: any) => ({ value: k, label: l }))} /></Field>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <AsyncButton className="btn-primary py-1" disabled={a.status === "suspendu"} onClick={async () => { try { const r = await api.call("POST", `/api/calendar/accounts/${a.id}/sync`); toast(r.message || "Synchronisé.", r.success ? "ok" : "error"); d.reload(); } catch (e) { toastError(e); } }}><RefreshCw size={14} /> Synchroniser maintenant</AsyncButton>
+              <button className="btn-secondary py-1" onClick={() => upd(a.id, { status: a.status === "suspendu" ? "actif" : "suspendu" })}>{a.status === "suspendu" ? "Reprendre" : "Suspendre"}</button>
+              <button className="btn-secondary py-1" onClick={async () => setLogs({ id: a.id, rows: await api.get(`/api/calendar/accounts/${a.id}/logs`) })}>Historique</button>
+              <button className="btn-ghost text-danger py-1 ml-auto" onClick={async () => { if (!window.confirm("Déconnecter ce compte ? Les rendez-vous restent dans Archipel41.")) return; try { await api.call("DELETE", `/api/calendar/accounts/${a.id}`); d.reload(); } catch (e) { toastError(e); } }}>Déconnecter</button>
+            </div>
+          </div>))}</div>
+      </Card>
+      <Card title="Abonnement ICS (lecture seule)">
+        <p className="text-sm text-muted">Alternative simple, compatible avec tous les agendas (iPhone, Android, Outlook, Thunderbird…) : abonnez-vous à cette adresse personnelle pour voir vos rendez-vous Archipel41 sur votre téléphone. Ne la partagez pas ; vous pouvez la renouveler à tout moment.</p>
+        {ics && <div className="mt-3 flex gap-2"><input className="input font-mono text-xs" readOnly value={ics} onFocus={(e) => e.target.select()} aria-label="Adresse ICS" />
+          <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(ics); toast("Adresse copiée."); }}><Check size={14} /> Copier</button></div>}
+        <div className="flex gap-2 mt-3"><AsyncButton className="btn-secondary" onClick={async () => { try { setIcs((await api.call("POST", "/api/calendar/ics-token")).url); } catch (e) { toastError(e); } }}>{ics ? "Renouveler l'adresse" : "Générer mon adresse d'abonnement"}</AsyncButton>
+          <button className="btn-ghost text-danger" onClick={async () => { try { await api.call("DELETE", "/api/calendar/ics-token"); setIcs(null); toast("Abonnement révoqué."); } catch (e) { toastError(e); } }}>Révoquer</button></div>
+      </Card>
+      {logs && <Modal open onClose={() => setLogs(null)} title="Historique des synchronisations" wide dismissable>
+        {!logs.rows.length ? <Empty title="Aucune synchronisation" /> : <ul className="divide-y divide-line">{logs.rows.map((r, i) => (
+          <li key={i} className="py-2 text-sm"><span className={`chip mr-2 ${r.success ? "bg-ok/15 text-ok" : "bg-danger/15 text-danger"}`}>{r.success ? "réussie" : "échec"}</span><span className="text-muted">{dateTimeFr(r.at)}</span> — {r.message}
+            {r.details?.length > 0 && <ul className="text-xs text-muted mt-1 pl-4 list-disc">{r.details.map((x: any, j: number) => <li key={j}>{x.evenement} : {x.conflit} → {x.decision}</li>)}</ul>}</li>))}</ul>}
+      </Modal>}
+    </div>
+  );
+}
+
+function CalendarTab() {
+  const { perms } = useApp();
+  return <div className="space-y-6">{perms.admin && <CalendarAdmin />}<CalendarAccounts /></div>;
+}
+
 export default function SettingsPage() {
   const { perms } = useApp();
-  const [tab, setTab] = useState(perms.admin ? "agence" : "compte");
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(params.get("onglet") || (perms.admin ? "agence" : "compte"));
   const tabs = [
     ...(perms.admin ? [{ id: "agence", label: "Agence" }] : []), { id: "utilisateurs", label: "Utilisateurs et permissions" },
     ...(perms.admin ? [{ id: "ia", label: "Intelligence artificielle" }, { id: "meteo", label: "Météo" }, { id: "urbanisme", label: "Urbanisme" }] : []),
-    { id: "sync", label: "Synchronisation" }, ...(perms.admin ? [{ id: "sauvegardes", label: "Sauvegardes" }, { id: "journal", label: "Journal" }] : []),
+    { id: "agendas", label: "Agendas externes" }, { id: "sync", label: "Synchronisation" }, ...(perms.admin ? [{ id: "sauvegardes", label: "Sauvegardes" }, { id: "journal", label: "Journal" }] : []),
     { id: "compte", label: "Mon compte" }, { id: "systeme", label: "Système" },
   ];
   return (
@@ -267,7 +373,7 @@ export default function SettingsPage() {
       <PageHeader title="Paramètres" icon={<Cog size={22} />} />
       <Tabs value={tab} onChange={setTab} tabs={tabs} />
       {tab === "agence" && <AgencyTab />}{tab === "utilisateurs" && <UsersTab />}{tab === "ia" && <AITab />}
-      {tab === "meteo" && <ServiceTab k="weather" />}{tab === "urbanisme" && <ServiceTab k="urbanisme" />}{tab === "sync" && <SyncTab />}
+      {tab === "meteo" && <ServiceTab k="weather" />}{tab === "urbanisme" && <ServiceTab k="urbanisme" />}{tab === "sync" && <SyncTab />}{tab === "agendas" && <CalendarTab />}
       {tab === "sauvegardes" && <BackupTab />}{tab === "journal" && <AuditTab />}{tab === "compte" && <AccountTab />}{tab === "systeme" && <SystemTab />}
     </div>
   );

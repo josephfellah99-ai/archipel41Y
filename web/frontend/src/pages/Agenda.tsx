@@ -1,6 +1,6 @@
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, AlertTriangle, Sparkles, Trash2, FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, download } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
 import { addDays, EVENT_COLORS, EVENT_KINDS, isoDate, startOfWeek, timeFr } from "../lib/format";
@@ -17,6 +17,8 @@ function localInput(iso: string) {
 function EventModal({ ev, onClose, onSaved }: { ev: any; onClose: () => void; onSaved: () => void }) {
   const { perms, user, projects, toast, toastError } = useApp();
   const users = useApi<any[]>("/api/users");
+  const clients = useApi<any[]>("/api/clients");
+  const companies = useApi<any[]>("/api/companies");
   const docs = useApi<any[]>(ev.project_id ? `/api/documents?project_id=${ev.project_id}` : "/api/documents?limit=100");
   const [f, setF] = useState<any>({ ...ev, start: localInput(ev.start), end: localInput(ev.end) });
   const [conflicts, setConflicts] = useState<any[]>([]);
@@ -27,6 +29,7 @@ function EventModal({ ev, onClose, onSaved }: { ev: any; onClose: () => void; on
   const dateError = !valid(f.start) ? "Date et heure de début à renseigner." : !valid(f.end) ? "Date et heure de fin à renseigner."
     : new Date(f.end) <= new Date(f.start) ? "La fin doit être postérieure au début." : null;
   const payload = () => ({ ...f, start: new Date(f.start).toISOString(), end: new Date(f.end).toISOString(), project_id: f.project_id || null,
+    client_id: f.client_id || null, company_id: f.company_id || null,
     reminder_minutes: f.reminder_minutes === "" || f.reminder_minutes === null ? null : Number(f.reminder_minutes) });
   useEffect(() => {
     if (!valid(f.start) || !valid(f.end)) return;
@@ -71,7 +74,9 @@ function EventModal({ ev, onClose, onSaved }: { ev: any; onClose: () => void; on
       <div className="grid sm:grid-cols-2 gap-3">
         <Field label="Objet *" className="sm:col-span-2"><input className="input" disabled={!canEdit} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
         <Field label="Type"><Select disabled={!canEdit} value={f.kind} onChange={(v) => setF({ ...f, kind: v })} options={Object.entries(EVENT_KINDS).map(([v, l]) => ({ value: v, label: l }))} /></Field>
-        <Field label="Projet"><Select disabled={!canEdit} value={f.project_id || ""} onChange={(v) => setF({ ...f, project_id: v })} placeholder="— Aucun —" options={projects.map((p) => ({ value: p.id, label: `${p.code} – ${p.name}` }))} /></Field>
+        <Field label="Projet / chantier"><Select disabled={!canEdit} value={f.project_id || ""} onChange={(v) => setF({ ...f, project_id: v })} placeholder="— Aucun —" options={projects.map((p) => ({ value: p.id, label: `${p.code} – ${p.name}` }))} /></Field>
+        <Field label="Client"><Select disabled={!canEdit} value={f.client_id || ""} onChange={(v) => setF({ ...f, client_id: v || null })} placeholder="— Aucun —" options={(clients.data || []).map((c) => ({ value: c.id, label: c.name }))} /></Field>
+        <Field label="Entreprise"><Select disabled={!canEdit} value={f.company_id || ""} onChange={(v) => setF({ ...f, company_id: v || null })} placeholder="— Aucune —" options={(companies.data || []).map((c) => ({ value: c.id, label: c.name }))} /></Field>
         <Field label="Début" required><input className="input" type="datetime-local" disabled={!canEdit} value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} /></Field>
         <Field label="Fin" required error={valid(f.start) && dateError ? dateError : null}><input className="input" type="datetime-local" disabled={!canEdit} value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} /></Field>
         <Field label="Lieu"><input className="input" disabled={!canEdit} value={f.location || ""} onChange={(e) => setF({ ...f, location: e.target.value })} /></Field>
@@ -114,7 +119,10 @@ export default function Agenda() {
     if (view === "semaine") { const s = startOfWeek(cursor); return [s, addDays(s, 7)]; }
     const s = startOfWeek(new Date(cursor.getFullYear(), cursor.getMonth(), 1)); return [s, addDays(s, 42)];
   }, [view, cursor]);
-  const qs = new URLSearchParams({ start: range[0].toISOString(), end: range[1].toISOString(), ...(who ? { participant: who } : {}), ...(onlyProject && projectId ? { project_id: projectId } : {}) });
+  const [deadlines, setDeadlines] = useState(true);
+  const nav = useNavigate();
+  const qs = new URLSearchParams({ start: range[0].toISOString(), end: range[1].toISOString(), ...(who ? { participant: who } : {}), ...(onlyProject && projectId ? { project_id: projectId } : {}),
+    ...(deadlines ? { include_deadlines: "true" } : {}) });
   const { data, loading, reload } = useApi<any[]>(`/api/events?${qs}`);
   useEffect(() => { const id = params.get("event"); if (id) api.get(`/api/events/${id}`).then(setEdit).catch(() => {}); }, [params]);
   const move = (n: number) => setCursor(view === "jour" ? addDays(cursor, n) : view === "semaine" ? addDays(cursor, 7 * n) : new Date(cursor.getFullYear(), cursor.getMonth() + n, 1));
@@ -140,10 +148,12 @@ export default function Agenda() {
   const title = view === "mois" ? cursor.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
     : view === "semaine" ? `Semaine du ${range[0].toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}` : cursor.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
   const evBlock = (e: any) => (
-    <button key={e.id} onClick={() => setEdit(e)} className="w-full text-left rounded-md px-2 py-1 text-[11px] leading-tight text-white mb-1 hover:opacity-90 relative"
-      style={{ background: EVENT_COLORS[e.kind] }}>
+    <button key={e.id} onClick={() => (e.readonly ? nav(e.kind === "echeance_tache" ? "/planning" : `/projets/${e.project_id}`) : setEdit(e))}
+      title={e.readonly ? "Échéance (lecture seule) : ouvrir le planning ou le projet" : e.source && e.source !== "archipel" ? `Synchronisé avec ${e.source === "google" ? "Google Agenda" : "Outlook"}` : undefined}
+      className={`w-full text-left rounded-md px-2 py-1 text-[11px] leading-tight text-white mb-1 hover:opacity-90 relative ${e.readonly ? "opacity-90 border border-dashed border-white/60" : ""}`}
+      style={{ background: EVENT_COLORS[e.kind] || EVENT_COLORS.autre }}>
       {overlapping.has(e.id) && <AlertTriangle size={11} className="absolute right-1 top-1" />}
-      <div className="font-medium truncate pr-3">{e.title}</div><div className="opacity-80">{timeFr(e.start)}–{timeFr(e.end)}</div>
+      <div className="font-medium truncate pr-3">{e.title}</div><div className="opacity-80">{e.readonly ? "échéance" : `${timeFr(e.start)}–${timeFr(e.end)}`}{e.source && e.source !== "archipel" ? ` · ${e.source === "google" ? "Google" : "Outlook"}` : ""}</div>
     </button>
   );
   return (
@@ -160,6 +170,7 @@ export default function Agenda() {
       <div className="flex flex-wrap gap-3 mb-4 items-center">
         <Select className="w-56" value={who} onChange={setWho} placeholder="Tous les collaborateurs" options={(users.data || []).map((u) => ({ value: u.id, label: u.full_name }))} />
         {projectId && <label className="text-sm flex items-center gap-2"><input type="checkbox" checked={onlyProject} onChange={(e) => setOnlyProject(e.target.checked)} /> Projet actif uniquement</label>}
+        <label className="text-sm flex items-center gap-2"><input type="checkbox" checked={deadlines} onChange={(e) => setDeadlines(e.target.checked)} /> Échéances (tâches, remises de phase)</label>
         <div className="flex flex-wrap gap-2 text-xs">{Object.entries(EVENT_KINDS).map(([k, l]) => <span key={k} className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: EVENT_COLORS[k] }} />{l}</span>)}</div>
         {overlapping.size > 0 && <span className="chip bg-warn/15 text-warn"><AlertTriangle size={12} /> {overlapping.size} rendez-vous en conflit</span>}
       </div>

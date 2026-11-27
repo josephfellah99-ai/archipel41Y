@@ -2,8 +2,9 @@ import { Users, Plus, Building2, User, Save, Trash2, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../lib/api";
-import { useApi, useApp } from "../lib/app";
+import { useApi, useApp, useEditable } from "../lib/app";
 import { dateFr, eur, QUOTE_STATUS, STATUS_PROJECT } from "../lib/format";
+import { StaleNotice } from "./Projects";
 import { AsyncButton, Card, Confirm, Empty, ErrorBox, Field, Modal, PageHeader, Select, Spinner, Tabs } from "../components/ui";
 
 const KINDS: Record<string, string> = { particulier: "Particulier", entreprise: "Entreprise", collectivite: "Collectivité", promoteur: "Promoteur / SCI" };
@@ -94,16 +95,17 @@ function Detail({ kind }: { kind: "client" | "company" }) {
   const path = kind === "client" ? "clients" : "companies";
   const { data, loading, error, reload } = useApi<any>(`/api/${path}/${id}`);
   const rel = useApi<any>(`/api/${path}/${id}/related`);
-  const [f, setF] = useState<any>(null);
+  const fe = useEditable<any>(data);
+  const f = fe.value;
+  const setF = fe.setValue;
   const [tab, setTab] = useState("fiche");
   const [del, setDel] = useState(false);
   const [note, setNote] = useState("");
   const nav = useNavigate();
-  useEffect(() => { if (data) setF(data); }, [data]);
   if (loading && !data) return <Spinner />;
   if (error || !f) return <ErrorBox error={error} />;
   const save = async (patch?: any) => {
-    try { await api.put(`/api/${path}/${id}`, clean({ ...f, ...(patch || {}) }), f.name); toast("Fiche enregistrée."); reload(); return true; }
+    try { await api.put(`/api/${path}/${id}`, clean({ ...f, ...(patch || {}) }), f.name); fe.markSaved(); toast("Fiche enregistrée."); reload(); return true; }
     catch (e: any) { if (e.status === 409) { toast("Conflit : fiche modifiée par ailleurs, rechargée.", "error"); reload(); } else toastError(e); return false; }
   };
   const r = rel.data || {};
@@ -114,7 +116,7 @@ function Detail({ kind }: { kind: "client" | "company" }) {
       <Tabs value={tab} onChange={setTab} tabs={[{ id: "fiche", label: "Fiche" }, { id: "projets", label: `Projets (${r.projects?.length || 0})` },
         ...(kind === "company" ? [{ id: "devis", label: `Devis (${r.quotes?.length || 0})` }, { id: "marches", label: `Marchés (${(r.lots?.length || 0) + (r.markets?.length || 0)})` }] : []),
         { id: "documents", label: `Documents (${r.documents?.length || 0})` }, { id: "historique", label: "Historique" }]} />
-      {tab === "fiche" && <Card actions={perms.write && <AsyncButton onClick={() => save()} disabled={!f.name?.trim()}><Save size={15} /> Enregistrer</AsyncButton>}><EntityForm kind={kind} value={f} onChange={setF} disabled={!perms.write} /></Card>}
+      {tab === "fiche" && <Card actions={perms.write && <AsyncButton onClick={() => save()} disabled={!f.name?.trim()}><Save size={15} /> Enregistrer</AsyncButton>}><StaleNotice stale={fe.stale} onDiscard={fe.discard} /><EntityForm kind={kind} value={f} onChange={setF} disabled={!perms.write} /></Card>}
       {tab === "projets" && <Card pad={false}>{!r.projects?.length ? <Empty title="Aucun projet associé" /> : <table className="table"><tbody>{r.projects.map((p: any) => <tr key={p.id}><td><Link className="hover:text-sage font-medium" to={`/projets/${p.id}`}>{p.code} – {p.name}</Link></td><td>{STATUS_PROJECT[p.status]}</td><td className="text-right">{eur(p.budget_initial, 0)}</td></tr>)}</tbody></table>}</Card>}
       {tab === "devis" && <Card pad={false}>{!r.quotes?.length ? <Empty title="Aucun devis" /> : <table className="table"><thead><tr><th>Référence</th><th>Projet</th><th>Date</th><th className="text-right">Total HT</th><th>Statut</th></tr></thead>
         <tbody>{r.quotes.map((q: any) => <tr key={q.id}><td><Link className="hover:text-sage" to={`/devis/${q.id}`}>{q.reference || "—"}</Link></td><td>{q.project}</td><td>{dateFr(q.quote_date)}</td><td className="text-right tabular-nums">{eur(q.computed?.total_ht)}</td><td>{QUOTE_STATUS[q.status]}</td></tr>)}</tbody></table>}</Card>}

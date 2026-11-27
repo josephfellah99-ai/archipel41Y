@@ -22,6 +22,8 @@ DEFAULTS = {
              "device_id": None, "last_pull_seq": 0, "last_sync_at": None, "last_error": None, "remote_agency_id": None},
     "agency": {"default_vat": 20, "currency": "EUR", "phases": None},
     "backup": {"auto": True, "keep": 10, "last_backup_at": None},
+    "calendar": {"microsoft_client_id": None, "microsoft_client_secret": None, "microsoft_tenant": "common",
+                 "google_client_id": None, "google_client_secret": None, "public_base_url": None, "interval_minutes": 15},
 }
 
 
