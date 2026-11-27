@@ -30,17 +30,40 @@ export const startOfWeek = (d: Date) => {
   x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
   return x;
 };
-export const parseNum = (v: string): number | null => {
-  if (v === "" || v === null || v === undefined) return null;
-  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
+/**
+ * Lecture d'un nombre saisi « à la française » : « 1 234,56 », « 1.234,56 », « 1234.56 »,
+ * « 12,5 % », « 3 402,00 € ». Retourne null si la saisie est vide ou invalide (jamais NaN).
+ */
+export const parseNum = (v: unknown): number | null => {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  let s = String(v).trim().replace(/[\s\u00a0\u202f]/g, "").replace(/€|%|eur/gi, "");
+  if (!s || s === "-" || s === "—") return null;
+  if (!/^-?[\d.,]+$/.test(s)) return null;
+  const lc = s.lastIndexOf(","), ld = s.lastIndexOf(".");
+  if (lc >= 0 && ld >= 0) s = lc > ld ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+  else if (lc >= 0) s = (s.match(/,/g) || []).length > 1 ? s.replace(/,/g, "") : s.replace(",", ".");
+  else if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g, "");
+  const n = Number(s);
   return Number.isFinite(n) ? n : null;
+};
+/** Vrai si la saisie est vide ou un nombre valide. */
+export const isNumOrEmpty = (v: unknown) => v === null || v === undefined || String(v).trim() === "" || parseNum(v) !== null;
+/** Convertit une saisie numérique pour l'API : "" → null ; invalide → lève une erreur explicite. */
+export const toNum = (v: unknown, label = "Valeur"): number | null => {
+  if (v === null || v === undefined || String(v).trim() === "") return null;
+  const n = parseNum(v);
+  if (n === null) throw new Error(`${label} : « ${v} » n'est pas un nombre valide (exemples acceptés : 1 250,50 ou 1250.50).`);
+  return n;
 };
 export const bytes = (n: number) => (n < 1024 ? `${n} o` : n < 1048576 ? `${(n / 1024).toFixed(0)} Ko` : `${(n / 1048576).toFixed(1)} Mo`);
 
 export const STATUS_PROJECT: Record<string, string> = { etude: "Études", consultation: "Consultation", chantier: "Chantier", reception: "Réception", archive: "Archivé" };
 export const LOT_STATUS: Record<string, string> = { a_consulter: "À consulter", consultation: "En consultation", attribue: "Attribué", en_cours: "En cours", receptionne: "Réceptionné" };
-export const EVENT_KINDS: Record<string, string> = { rdv_client: "Rendez-vous client", reunion_entreprise: "Réunion entreprise", visite_chantier: "Visite de chantier", interne: "Interne", autre: "Autre" };
-export const EVENT_COLORS: Record<string, string> = { rdv_client: "#253A33", reunion_entreprise: "#46678C", visite_chantier: "#A07D52", interne: "#718578", autre: "#8A8F8C" };
+export const EVENT_KINDS: Record<string, string> = { rdv_client: "Rendez-vous client", reunion_chantier: "Réunion de chantier", visite_chantier: "Visite de site",
+  reunion_entreprise: "Réunion entreprise", echeance_admin: "Échéance administrative", livrable: "Remise de livrable", interne: "Interne", autre: "Autre" };
+export const EVENT_COLORS: Record<string, string> = { rdv_client: "#253A33", reunion_chantier: "#8C5A2B", visite_chantier: "#A07D52", reunion_entreprise: "#46678C",
+  echeance_admin: "#9C3B29", livrable: "#5E4B8B", echeance_tache: "#B07A26", interne: "#718578", autre: "#8A8F8C" };
 export const QUOTE_STATUS: Record<string, string> = { a_verifier: "À vérifier", valide: "Validé", retenu: "Retenu", rejete: "Rejeté" };
 export const LINE_STATUS: Record<string, string> = { inclus: "Inclus", exclu: "Exclu", optionnel: "Optionnel", variante: "Variante", a_verifier: "À vérifier" };
 export const CMP_STATUS: Record<string, { label: string; cls: string }> = {
@@ -57,7 +80,7 @@ export const FINANCE_KINDS: Record<string, string> = {
   paiement: "Paiement", depense: "Dépense", honoraires: "Honoraires",
 };
 export const FIN_STATUS: Record<string, string> = { prevu: "Prévu", emis: "Émis", valide: "Validé", paye: "Payé", annule: "Annulé" };
-export const ROLE_LABELS: Record<string, string> = { admin: "Administrateur", manager: "Chef de projet", member: "Collaborateur", viewer: "Lecture seule" };
+export const ROLE_LABELS: Record<string, string> = { admin: "Administrateur", manager: "Gestionnaire", member: "Collaborateur", viewer: "Lecteur" };
 export const ACTIVITY_LABELS: Record<string, string> = {
   terrassement: "Terrassement", fondations: "Fondations", beton: "Béton / coulage", maconnerie: "Maçonnerie", charpente: "Charpente",
   couverture: "Couverture", etancheite: "Étanchéité", facade: "Façade / enduits", peinture_ext: "Peinture extérieure",

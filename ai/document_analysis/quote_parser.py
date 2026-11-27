@@ -41,6 +41,7 @@ class ParsedLine:
     confidence: float = 0.8
     page: int | None = None
     raw: str | None = None
+    reading: str | None = None  # « 4 × 890,00 = 3 560,00 ✓ » ou motif d'incertitude
 
 
 @dataclass
@@ -284,9 +285,24 @@ def _groupings(pieces: list[str], n: int):
             yield [" ".join(head)] + rest
 
 
+_VAT_COLUMN = {Decimal("20"), Decimal("10"), Decimal("5.5"), Decimal("2.1")}
+
+
+def _consistent(qty: Decimal, pu: Decimal, tot: Decimal) -> bool:
+    return abs(qty * pu - tot) <= Decimal("0.05") + abs(tot) * Decimal("0.0005")
+
+
 def split_tail(ln: str):
     """Analyse « désignation [unité] qté [unité] PU total [TVA %] » en gérant les
-    espaces séparateurs de milliers. Retourne un dict ou None."""
+    espaces séparateurs de milliers. Retourne un dict ou None.
+
+    Garde-fous contre la confusion des nombres :
+    - les nombres techniques placés en fin de désignation (Uw 1,3 ; Ø 90 ; EI 30 ;
+      année 2024…) sont rendus à la désignation au lieu d'être lus comme quantité ;
+    - une dernière colonne égale à un taux de TVA français (20, 10, 5,5, 2,1) sans
+      « % » est reconnue comme TVA si cela rend la ligne arithmétiquement cohérente ;
+    - on retient en priorité un découpage où quantité × prix unitaire = montant ;
+      à défaut la ligne est marquée « lecture incertaine »."""
     ln = re.sub(r"\s*€", "", ln)
     vat = None
     m = re.search(r"\s(\d{1,2}(?:[.,]\d{1,2})?)\s*%\s*$", ln)
@@ -295,33 +311,53 @@ def split_tail(ln: str):
         ln = ln[: m.start()]
     toks = ln.split()
     pieces: list[str] = []
+    piece_pos: list[int] = []
     unit = None
-    unit_pos = None
+    unit_idx = None
     i = len(toks) - 1
     while i >= 0:
         t = toks[i]
         if _PIECE_RX.match(t):
             pieces.insert(0, t)
+            piece_pos.insert(0, i)
         elif unit is None and _UNIT_RX.match(t) and pieces:
-            unit, unit_pos = t, len(pieces)
+            unit, unit_idx = t, i
         else:
             break
         i -= 1
-    des_toks = toks[: i + 1]
-    if len(pieces) < 3 or not des_toks:
+    first_des = i + 1
+    if len(pieces) < 3 or first_des == 0:
         return None
     best = None
-    for g in _groupings(pieces, 3):
-        qty, pu, tot = (parse_number(x) for x in g)
-        if None in (qty, pu, tot):
-            continue
-        ok = abs(qty * pu - tot) <= Decimal("0.05") + abs(tot) * Decimal("0.0005")
-        cand = (ok, -len(g[0]), qty, pu, tot)
-        if best is None or cand[:2] > best[:2]:
-            best = cand
+    # vat_opts : (pièces utilisées, taux lu en colonne)
+    vat_opts = [(pieces, None)]
+    if vat is None and len(pieces) >= 4:
+        last = parse_number(pieces[-1])
+        if last is not None and last in _VAT_COLUMN and "," not in pieces[-1].replace("5,5", "").replace("2,1", ""):
+            vat_opts.append((pieces[:-1], last))
+    for vi, (pcs, vcol) in enumerate(vat_opts):
+        for drop in range(0, len(pcs) - 2):
+            for g in _groupings(pcs[drop:], 3):
+                qty, pu, tot = (parse_number(x) for x in g)
+                if None in (qty, pu, tot) or qty <= 0:
+                    continue
+                ok = _consistent(qty, pu, tot)
+                # priorité : cohérence, puis moins de nombres rendus à la désignation, puis sans TVA déduite
+                cand = (ok, -drop, -vi, -len(g[0]), qty, pu, tot, drop, vcol)
+                if best is None or cand[:4] > best[:4]:
+                    best = cand
     if best is None:
         return None
-    ok, _, qty, pu, tot = best
+    ok, _, _, _, qty, pu, tot, drop, vcol = best
+    if vcol is not None:
+        vat = vcol
+    # Désignation = tokens jusqu'au premier nombre retenu (les nombres rendus y restent),
+    # en retirant l'unité si elle se trouve dans la partie numérique retenue.
+    cut = piece_pos[drop]
+    des_toks = [t for k, t in enumerate(toks[:cut]) if k != unit_idx or unit_idx < first_des]
+    if unit_idx is not None and unit_idx < cut and unit_idx >= first_des:
+        # l'unité est entre un nombre rendu et la quantité : « Ø 90 ml 40 … » → unité conservée, retirée du libellé
+        des_toks = [t for k, t in enumerate(toks[:cut]) if k != unit_idx]
     code = None
     if des_toks and re.fullmatch(r"(?:[A-Z]{1,2}[.]?)?\d{1,2}(?:\.\d{1,3}){0,4}\.?", des_toks[0]):
         code = des_toks[0].strip(".")
@@ -329,7 +365,8 @@ def split_tail(ln: str):
     des = " ".join(des_toks).strip(" .:-")
     if not re.search(r"[A-Za-zÀ-ÿ]{3}", des):
         return None
-    return {"code": code, "des": des, "qty": qty, "pu": pu, "tot": tot, "unit": unit, "vat": vat, "consistent": ok}
+    return {"code": code, "des": des, "qty": qty, "pu": pu, "tot": tot, "unit": unit, "vat": vat, "consistent": ok,
+            "returned": pieces[:drop]}
 
 
 def clean_ocr_line(raw: str) -> str:
@@ -366,14 +403,15 @@ def parse_text_lines(pages: list, ocr: bool) -> list[ParsedLine]:
             sp = split_tail(ln)
             if sp:
                 in_clauses = False
-                conf = 0.95 if sp["consistent"] else 0.6
+                conf = 0.95 if sp["consistent"] else 0.45
                 if ocr:
                     conf -= 0.15
                 out.append(ParsedLine(
                     designation=sp["des"], quantity=_f(sp["qty"]), unit=normalize_unit(sp["unit"]),
                     unit_price=_f(sp["pu"]), total_ht=_f(sp["tot"]), vat_rate=_f(sp["vat"]),
                     status=detect_status(sp["des"]) or "inclus", section=section, code=sp["code"],
-                    confidence=round(conf, 2), page=page.number, raw=raw.strip()))
+                    confidence=round(conf, 2), page=page.number, raw=raw.strip(),
+                    reading=reading_trace(sp["qty"], sp["pu"], sp["tot"], sp["consistent"], sp.get("returned"))))
                 continue
             m = FORFAIT_RX.match(ln)
             if m and not in_clauses and re.search(r"[A-Za-zÀ-ÿ]{4}", m.group("des")) and not re.search(r"capital|siret|tel|t[ée]l[ée]phone|iban|bic|rcs", f):
@@ -459,12 +497,23 @@ def parse_tables(tables: list[tuple[int, list[list[str]]]], ocr: bool) -> list[P
             if ocr:
                 conf -= 0.15
             vat = parse_number(get("vat_rate")) if "vat_rate" in mapping else None
-            out.append(ParsedLine(
+            trace = reading_trace(qty, pu, tot, not issues, None) if None not in (qty, pu, tot) else None
+            out.append(ParsedLine(reading=trace,
                 designation=des, quantity=_f(qty), unit=normalize_unit(get("unit")), unit_price=_f(pu),
                 total_ht=_f(tot), vat_rate=_f(vat), status=detect_status(des + " " + text_cells) or "inclus",
                 section=section, code=(get("code") or "").strip() or None, confidence=round(conf, 2),
                 page=page_no, raw=" | ".join(row)))
     return out
+
+
+def reading_trace(qty, pu, tot, consistent: bool, returned) -> str:
+    """Explique comment les nombres de la ligne ont été attribués."""
+    from .calc import fr
+    txt = f"Quantité {fr(qty, None)} × prix unitaire {fr(pu)} = {fr(qty * pu)} ; montant lu {fr(tot)}"
+    txt += " — cohérent." if consistent else " — INCOHÉRENT : vérifier la lecture ou le calcul de l'entreprise."
+    if returned:
+        txt += " Nombre(s) « " + " ".join(returned) + " »" + " laissé(s) dans la désignation (caractéristique technique), pas lu(s) comme quantité."
+    return txt
 
 
 # --------------------------------------------------------------------------- point d'entrée

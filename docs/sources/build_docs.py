@@ -10,7 +10,7 @@ import doc_technique  # noqa: E402
 import guide_installation  # noqa: E402
 import guide_utilisation  # noqa: E402
 
-VERSION = "1.0.0"
+VERSION = "1.2.0"
 DATE = date.today().strftime("%d/%m/%Y")
 OUT = HERE.parent
 TARGETS = [(guide_installation, "GUIDE_INSTALLATION_ARCHIPEL41.pdf", "Guide d'installation et de démarrage"),

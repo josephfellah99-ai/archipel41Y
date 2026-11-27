@@ -1,5 +1,35 @@
 # Journal des versions
 
+## 1.2.0 – 27/11/2026
+Environnement collaboratif, terrain, bibliothèque documentaire de l'agence, aide et guides.
+- Formulaires fiables : nombres à la française validés par le serveur, modifications protégées des rechargements, double envoi impossible.
+- Connexion en trois modes, rôles (administrateur, gestionnaire, collaborateur, lecteur), autorisations par module et par projet
+  vérifiées côté serveur, invitations par code et espace invité.
+- Collaboration : équipe, affectations, commentaires, notifications.
+- Historique d'activité (avant / après), connexions, erreurs référencées, journal scellé avec contrôle d'intégrité.
+- Synchronisation Outlook / Google Agenda (OAuth 2 + PKCE, jetons chiffrés, règles de conflit) et flux ICS.
+- Terrain et cartographie : carte, mesures, repères annotés, imports (GeoJSON, KML/KMZ, GPX, Shapefile, GeoPackage, DXF,
+  GeoTIFF, image calée, MNT), conversions Lambert-93 / CC42-50 / Lambert II étendu / UTM, fiche terrain, exports.
+- Bibliothèque documentaire : arborescence ARCHIPEL 41 (modèles validés par l'agence), suggestion de classement expliquée
+  (jamais appliquée sans accord), contrôle de nommage (« - », AAAA-MM-JJ, MOA), visionneuses tableur / Word / DXF / IFC,
+  annotations sur PDF et images (original jamais modifié), statut, documents liés et similaires, ouverture dans le logiciel métier.
+- Aide contextuelle sur chaque écran ; guides PDF embarqués et mis à jour (état des fonctionnalités).
+- Correctifs : arrêt du moteur à l'aperçu d'un PDF (rendu sérialisé, redémarrage automatique) ; superficies du terrain
+  enregistrées comme nombres ; accents des noms de fichiers conservés ; noms des archives ZIP Windows restitués ;
+  libellés de formats géographiques trop longs pour PostgreSQL ; messages réseau compréhensibles.
+
+## 1.1.0 – 27/11/2026
+Comparateur de devis : lecture plus sûre des nombres, remarques techniques, optimisation économique à qualité constante.
+- Lecture des lignes : les nombres techniques de la désignation (Uw 1,3, Ø 90, EI 30, année…) ne sont plus pris pour une
+  quantité ; colonne TVA sans « % » reconnue ; découpage retenu en priorité si quantité × PU = montant, sinon ligne signalée.
+- Caractéristiques techniques lues dans les libellés (épaisseur, classe de béton, R, Uw/Ug/Up, λ, diamètre, coupe-feu,
+  acoustique, dosage, dimensions, UPEC) et comparées à la DPGF et entre offres.
+- Remarques techniques classées (gravité, thème, impact en euros, action recommandée).
+- Coût réel probable par offre (coûts cachés), leviers de négociation ciblant la médiane des offres conformes, plancher
+  réaliste du lot ; prix anormalement bas et prestations inférieures exclus des cibles.
+- Exports Excel, Word, PDF : feuilles « Optimisation », « Leviers de négociation », « Remarques techniques ».
+- 13 tests supplémentaires (78 au total, SQLite et PostgreSQL) ; 28 vérifications de bout en bout.
+
 ## 1.0.0 – 25/11/2026
 Première version.
 - 11 modules : tableau de bord, projets et chantiers (phases ESQ→AOR), devis et comparateur, agenda, planning Gantt et météo,

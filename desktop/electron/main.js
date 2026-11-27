@@ -49,6 +49,7 @@ let backendPort = null;
 let mainWindow = null;
 let splash = null;
 let quitting = false;
+let restarts = [];
 
 function resourcesRoot() {
   return app.isPackaged ? process.resourcesPath : path.resolve(__dirname, "..", "build");
@@ -98,7 +99,8 @@ function waitForHealth(port, timeoutMs = 90000) {
 async function startBackend() {
   const root = resourcesRoot();
   const backendRoot = path.join(root, "backend");
-  backendPort = await freePort();
+  // Même port lors d'un redémarrage : l'interface (et la session ouverte) reste valide.
+  if (!backendPort) backendPort = await freePort();
   const env = {
     ...process.env,
     ARCHIPEL_MODE: "desktop",
@@ -128,10 +130,26 @@ async function startBackend() {
   });
   backend.on("exit", (code, signal) => {
     log(`Moteur arrêté (code ${code}, signal ${signal})`);
-    if (!quitting && mainWindow) {
-      dialog.showErrorBox(APP_NAME, `Le moteur local d'Archipel41 s'est arrêté de façon inattendue.\n\nJournal : ${LOG_DIR}\n\nL'application va se fermer ; vos données sont conservées.`);
-      app.quit();
+    if (quitting || !mainWindow) return;
+    // Arrêt inattendu : redémarrage automatique (3 fois maximum en 10 minutes), données conservées.
+    const now = Date.now();
+    restarts = restarts.filter((t) => now - t < 10 * 60 * 1000);
+    if (restarts.length < 3) {
+      restarts.push(now);
+      log(`Redémarrage automatique du moteur (${restarts.length}/3).`);
+      startBackend()
+        .then(() => {
+          if (mainWindow) mainWindow.reload();
+          if (Notification.isSupported()) new Notification({ title: APP_NAME, body: "Le moteur local s'est arrêté et a été redémarré automatiquement. L'incident est consigné dans Historique › Diagnostic." }).show();
+        })
+        .catch((e) => {
+          dialog.showErrorBox(APP_NAME, `Le moteur local d'Archipel41 n'a pas pu redémarrer : ${e.message}\n\nJournal : ${LOG_DIR}\n\nL'application va se fermer ; vos données sont conservées.`);
+          app.quit();
+        });
+      return;
     }
+    dialog.showErrorBox(APP_NAME, `Le moteur local d'Archipel41 s'est arrêté plusieurs fois de façon inattendue.\n\nJournal : ${LOG_DIR}\n\nL'application va se fermer ; vos données sont conservées.`);
+    app.quit();
   });
   await waitForHealth(backendPort);
   log("Moteur prêt.");
@@ -223,6 +241,19 @@ ipcMain.handle("a41:save-file", async (_e, name, bytes) => {
   await fs.promises.writeFile(res.filePath, Buffer.from(bytes));
   shell.showItemInFolder(res.filePath);
   return true;
+});
+// Ouverture d'un document dans son logiciel (ArchiCAD, AutoCAD, Excel…) : copie temporaire, jamais l'original ;
+// les formats exécutables sont refusés.
+const BLOCKED = /\.(exe|msi|bat|cmd|com|scr|ps1|psm1|vbs|vbe|js|jse|wsf|wsh|hta|lnk|reg|jar|cpl|msc|pif|application|appref-ms|url)$/i;
+ipcMain.handle("a41:open-file", async (_e, name, bytes) => {
+  const safe = String(name).replace(/[\\/:*?"<>|]+/g, "_").slice(0, 180) || "document";
+  if (BLOCKED.test(safe)) return { ok: false, error: "Format exécutable : ouverture refusée par sécurité. Téléchargez le fichier si vous en avez besoin." };
+  const dir = path.join(app.getPath("temp"), "Archipel41-ouverts", String(Date.now()));
+  await fs.promises.mkdir(dir, { recursive: true });
+  const file = path.join(dir, safe);
+  await fs.promises.writeFile(file, Buffer.from(bytes));
+  const err = await shell.openPath(file);
+  return err ? { ok: false, error: `Aucun logiciel n'est associé à ce format sur cet ordinateur (${err}).` } : { ok: true };
 });
 ipcMain.handle("a41:open-external", (_e, url) => {
   if (/^https?:\/\//.test(url)) shell.openExternal(url);

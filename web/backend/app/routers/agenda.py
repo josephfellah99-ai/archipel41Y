@@ -62,7 +62,8 @@ def find_conflicts(db: Session, user: User, start: datetime, end: datetime, part
 
 @router.get("")
 def list_events(start: str | None = None, end: str | None = None, project_id: str | None = None,
-                participant: str | None = None, user: User = Depends(require("read")), db: Session = Depends(get_db)):
+                participant: str | None = None, include_deadlines: bool = False, user: User = Depends(require("read")),
+                db: Session = Depends(get_db)):
     q = scoped_query(db, Event, user)
     if start:
         q = q.filter(Event.end >= _dt(start))
@@ -73,7 +74,46 @@ def list_events(start: str | None = None, end: str | None = None, project_id: st
     rows = q.order_by(Event.start).limit(3000).all()
     if participant:
         rows = [e for e in rows if e.organizer_id == participant or any(p.get("user_id") == participant for p in e.participants or [])]
-    return [to_dict(e) for e in rows]
+    out = [to_dict(e) for e in rows]
+    if include_deadlines and start and end:
+        out += deadlines(db, user, _dt(start), _dt(end), project_id, participant)
+    return out
+
+
+def deadlines(db: Session, user: User, start, end, project_id=None, participant=None) -> list[dict]:
+    """Échéances affichées dans l'agenda (lecture seule) : fins de tâches et remises de phase (livrables)."""
+    from datetime import datetime as _dtm, time as _time, timezone as _tz
+
+    from ..models import Project, Task
+    from ..security import module_level
+
+    out = []
+    projects = {p.id: p for p in scoped_query(db, Project, user)}
+    if module_level(user, "planning") != "none":
+        tq = scoped_query(db, Task, user).filter(Task.start_date.isnot(None), Task.progress < 100)
+        if project_id:
+            tq = tq.filter(Task.project_id == project_id)
+        for t in tq:
+            due = t.start_date + timedelta(days=max(0, (t.duration_days or 0) - 1))
+            at = _dtm.combine(due, _time(17, 0), tzinfo=_tz.utc)
+            if not (start <= at <= end) or (participant and t.responsible_id != participant):
+                continue
+            p = projects.get(t.project_id)
+            out.append({"id": f"task:{t.id}", "title": f"Échéance : {t.name}", "kind": "echeance_tache", "start": at.isoformat(),
+                        "end": at.isoformat(), "all_day": True, "project_id": t.project_id, "readonly": True,
+                        "participants": [{"user_id": t.responsible_id}] if t.responsible_id else [], "location": p.code if p else None})
+    for p in projects.values():
+        if project_id and p.id != project_id:
+            continue
+        for ph in p.phases or []:
+            if not ph.get("enabled", True) or not ph.get("end") or ph.get("status") == "terminee":
+                continue
+            at = _dtm.combine(_dtm.fromisoformat(str(ph["end"])).date(), _time(12, 0), tzinfo=_tz.utc)
+            if start <= at <= end and not participant:
+                out.append({"id": f"phase:{p.id}:{ph['code']}", "title": f"Remise {ph['code']} – {p.code}", "kind": "livrable",
+                            "start": at.isoformat(), "end": at.isoformat(), "all_day": True, "project_id": p.id, "readonly": True,
+                            "participants": [], "location": None})
+    return out
 
 
 @router.post("/check")

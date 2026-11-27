@@ -85,9 +85,8 @@ async function main() {
   await shot(page, "03_tableau_de_bord_vide");
 
   // ----------------------------------------------------------------- 2. utilisateurs
-  await go(page, "/parametres");
-  await page.click("button[role=tab]:has-text('Utilisateurs')");
-  await page.click("button.btn-primary:has-text('Utilisateur')");
+  await go(page, "/equipe");
+  await page.click("button.btn-primary:has-text('Collaborateur')");
   const um = page.locator("[role=dialog]");
   await um.locator("input").nth(0).fill("Lucas Bernard");
   await um.locator("input[type=email]").fill("lucas.bernard@atelier-exemple.fr");
@@ -96,7 +95,7 @@ async function main() {
   await shot(page, "04_ajout_utilisateur");
   await um.locator("button:has-text('Enregistrer')").click();
   await page.waitForSelector("text=Lucas Bernard");
-  check("Utilisateurs : création d'un chef de projet", true);
+  check("Utilisateurs : création d'un gestionnaire", true);
   await shot(page, "05_utilisateurs_permissions", { full: true });
 
   // ----------------------------------------------------------------- 3. annuaire
@@ -123,6 +122,7 @@ async function main() {
     await page.click("button[role=tab]:has-text('Entreprises')");
   }
   await shot(page, "08_annuaire_entreprises");
+  await page.waitForSelector("text=SAS Maçonnerie Durand", { timeout: 8000 }).catch(() => {});
   check("Annuaire : client et entreprises créés", (await page.locator("text=SAS Maçonnerie Durand").count()) > 0);
 
   // ----------------------------------------------------------------- 4. projet
@@ -203,6 +203,14 @@ async function main() {
   await shot(page, "21_comparatif_filtre");
   await page.click("button[role=tab]:has-text('Conclusion')");
   await shot(page, "22_comparatif_conclusion", { full: true });
+  await page.click("button[role=tab]:has-text('Coût réel et économies')");
+  await page.waitForTimeout(400);
+  check("Comparateur : coût réel probable et leviers d'économie", (await page.locator("text=Coût réel probable par offre").count()) > 0 && (await page.locator("text=Leviers de négociation").count()) > 0);
+  await shot(page, "53_comparatif_optimisation", { full: true });
+  await page.click("button[role=tab]:has-text('Remarques techniques')");
+  await page.waitForTimeout(400);
+  check("Comparateur : remarques techniques avec actions", (await page.locator("text=anormalement bas").count()) > 0);
+  await shot(page, "54_comparatif_remarques", { full: true });
   await page.click("button[role=tab]:has-text('Contrôle CCTP')");
   await shot(page, "23_comparatif_cctp");
   const [dl] = await Promise.all([page.waitForEvent("download"), page.click("button:has-text('Excel')")]);
@@ -244,7 +252,7 @@ async function main() {
     const tm = page.locator("[role=dialog]");
     await tm.locator("input").first().fill(name);
     await tm.locator("input[type=date]").fill(today);
-    await tm.locator("input[type=number]").first().fill(dur);
+    await tm.locator("label:has-text('Durée') input").first().fill(dur);
     await tm.locator("select").first().selectOption(act);
     if (name === "Dallage") await shot(page, "28_nouvelle_tache");
     await tm.locator("button:has-text('Enregistrer')").click();

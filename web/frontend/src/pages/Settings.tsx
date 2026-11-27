@@ -1,9 +1,10 @@
 import { Settings as Cog, Plus, Save, Plug, Download, Upload, RefreshCw, ShieldCheck, AlertTriangle, Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api, conflictItems, download, dropConflict, flushOutbox, outboxItems } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
-import { bytes, dateTimeFr, ROLE_LABELS } from "../lib/format";
-import { Card, Empty, ErrorBox, Field, Modal, Notice, PageHeader, Select, Spinner, Tabs } from "../components/ui";
+import { bytes, dateTimeFr, ROLE_LABELS, toNum } from "../lib/format";
+import { AsyncButton, Card, Empty, ErrorBox, Field, Modal, Notice, NumberInput, PageHeader, Select, Spinner, Tabs } from "../components/ui";
 
 function useSetting(key: string) {
   const s = useApi<any>(`/api/settings/${key}`);
@@ -12,8 +13,8 @@ function useSetting(key: string) {
   return { v, setV, reload: s.reload, loading: s.loading };
 }
 
-function SaveBar({ onSave, onTest, busy }: { onSave: () => void; onTest?: () => void; busy?: boolean }) {
-  return <div className="flex gap-2 mt-4">{onTest && <button className="btn-secondary" onClick={onTest} disabled={busy}><Plug size={15} /> Tester la connexion</button>}<button className="btn-primary" onClick={onSave} disabled={busy}><Save size={15} /> Enregistrer</button></div>;
+function SaveBar({ onSave, onTest, busy }: { onSave: () => Promise<any> | void; onTest?: () => Promise<any> | void; busy?: boolean }) {
+  return <div className="flex gap-2 mt-4">{onTest && <AsyncButton className="btn-secondary" onClick={onTest} disabled={busy}><Plug size={15} /> Tester la connexion</AsyncButton>}<AsyncButton onClick={onSave} disabled={busy}><Save size={15} /> Enregistrer</AsyncButton></div>;
 }
 
 function Secret({ label, value, isSet, onChange, hint }: { label: string; value: string; isSet: boolean; onChange: (v: string) => void; hint?: string }) {
@@ -38,45 +39,11 @@ function AgencyTab() {
 }
 
 function UsersTab() {
-  const { perms, user, toast, toastError } = useApp();
-  const users = useApi<any[]>("/api/users");
-  const roles = useApi<any[]>("/api/roles");
-  const [edit, setEdit] = useState<any>(null);
-  const save = async () => {
-    try {
-      if (edit.id) { const { email, ...rest } = edit; await api.call("PUT", `/api/users/${edit.id}`, { full_name: rest.full_name, role: rest.role, active: rest.active, job_title: rest.job_title || null, phone: rest.phone || null, color: rest.color || null, ...(rest.password ? { password: rest.password } : {}) }); }
-      else await api.call("POST", "/api/users", { email: edit.email, full_name: edit.full_name, role: edit.role, password: edit.password, job_title: edit.job_title || null, color: edit.color || null });
-      toast("Utilisateur enregistré."); setEdit(null); users.reload();
-    } catch (e) { toastError(e); }
-  };
-  const PERM_LABELS: Record<string, string> = { read: "Consulter", write: "Créer / modifier", delete: "Supprimer", validate: "Valider (devis, planning)", admin: "Administrer (utilisateurs, paramètres, sauvegardes)" };
   return (
-    <div className="space-y-6">
-      <Card title="Utilisateurs de l'agence" pad={false} actions={perms.admin && <button className="btn-primary" onClick={() => setEdit({ email: "", full_name: "", role: "member", password: "", active: true, color: "#718578" })}><Plus size={15} /> Utilisateur</button>}>
-        <table className="table"><thead><tr><th>Nom</th><th>E-mail</th><th>Rôle</th><th>État</th><th>Dernière connexion</th></tr></thead>
-          <tbody>{(users.data || []).map((u) => (
-            <tr key={u.id} className={perms.admin ? "hover:bg-sunken/50 cursor-pointer" : ""} onClick={() => perms.admin && setEdit({ ...u, password: "" })}>
-              <td className="font-medium"><span className="inline-block h-2.5 w-2.5 rounded-full mr-2" style={{ background: u.color || "#718578" }} />{u.full_name}{u.id === user?.id && <span className="text-xs text-muted"> (vous)</span>}</td>
-              <td className="text-muted">{u.email}</td><td>{u.role_label}</td><td>{u.active ? <span className="chip bg-ok/15 text-ok">actif</span> : <span className="chip bg-sunken text-muted">désactivé</span>}</td>
-              <td className="text-muted">{dateTimeFr(u.last_login_at)}</td></tr>))}</tbody></table>
-      </Card>
-      <Card title="Matrice des permissions">
-        <div className="overflow-x-auto"><table className="table"><thead><tr><th>Permission</th>{(roles.data || []).map((r) => <th key={r.code} className="text-center">{r.label}</th>)}</tr></thead>
-          <tbody>{Object.entries(PERM_LABELS).map(([p, l]) => <tr key={p}><td>{l}</td>{(roles.data || []).map((r) => <td key={r.code} className="text-center">{r.permissions.includes(p) ? <Check size={15} className="inline text-ok" /> : "—"}</td>)}</tr>)}</tbody></table></div>
-        <p className="text-xs text-muted mt-3">Les projets marqués « confidentiels » ne sont visibles que de leur équipe, des chefs de projet et des administrateurs. Les données de chaque agence sont strictement isolées.</p>
-      </Card>
-      <Modal open={!!edit} onClose={() => setEdit(null)} title={edit?.id ? edit.full_name : "Nouvel utilisateur"} footer={<><button className="btn-secondary" onClick={() => setEdit(null)}>Annuler</button><button className="btn-primary" onClick={save}>Enregistrer</button></>}>
-        {edit && <div className="grid sm:grid-cols-2 gap-3">
-          <Field label="Nom complet *"><input className="input" value={edit.full_name} onChange={(e) => setEdit({ ...edit, full_name: e.target.value })} /></Field>
-          <Field label="E-mail *"><input className="input" type="email" disabled={!!edit.id} value={edit.email} onChange={(e) => setEdit({ ...edit, email: e.target.value })} /></Field>
-          <Field label="Rôle"><Select value={edit.role} onChange={(v) => setEdit({ ...edit, role: v })} options={Object.entries(ROLE_LABELS).map(([v, l]) => ({ value: v, label: l }))} /></Field>
-          <Field label="Fonction"><input className="input" value={edit.job_title || ""} onChange={(e) => setEdit({ ...edit, job_title: e.target.value })} /></Field>
-          <Field label={edit.id ? "Nouveau mot de passe (facultatif)" : "Mot de passe initial *"} hint="10 caractères minimum, 3 types de caractères."><input className="input" type="password" autoComplete="new-password" value={edit.password} onChange={(e) => setEdit({ ...edit, password: e.target.value })} /></Field>
-          <Field label="Couleur"><input className="input h-10 p-1" type="color" value={edit.color || "#718578"} onChange={(e) => setEdit({ ...edit, color: e.target.value })} /></Field>
-          {edit.id && <label className="text-sm flex items-center gap-2"><input type="checkbox" checked={edit.active} onChange={(e) => setEdit({ ...edit, active: e.target.checked })} /> Compte actif</label>}
-        </div>}
-      </Modal>
-    </div>
+    <Card title="Utilisateurs et autorisations">
+      <p className="text-sm">La gestion des comptes (création, rôles, autorisations par module et par projet, désactivation, suppression) et des invitations se fait désormais dans le module <b>Équipe</b>.</p>
+      <a className="btn-primary mt-3 inline-flex" href="#/equipe">Ouvrir la gestion de l'équipe</a>
+    </Card>
   );
 }
 
@@ -149,7 +116,7 @@ function SyncTab() {
   const { mode, perms, toast, toastError } = useApp();
   const st = useApi<any>("/api/sync/status");
   const conflicts = useApi<any[]>("/api/sync/conflicts");
-  const [f, setF] = useState({ server_url: "", email: "", password: "", interval_minutes: 5 });
+  const [f, setF] = useState<any>({ server_url: "", email: "", password: "", interval_minutes: "5" });
   const [local, setLocal] = useState<{ out: any[]; conf: any[] }>({ out: [], conf: [] });
   const loadLocal = async () => setLocal({ out: await outboxItems(), conf: await conflictItems() });
   useEffect(() => { loadLocal(); }, []);
@@ -173,10 +140,10 @@ function SyncTab() {
             {s.last_error && <><dt className="text-muted">Dernier message</dt><dd className="text-warn">{s.last_error}</dd></>}</dl>}
           {perms.admin && <div className="grid sm:grid-cols-2 gap-3">
             <Field label="Adresse du serveur" hint="ex. https://archipel41.monagence.fr"><input className="input" value={f.server_url} onChange={(e) => setF({ ...f, server_url: e.target.value })} /></Field>
-            <Field label="Intervalle (minutes)"><input className="input" type="number" min={1} value={f.interval_minutes} onChange={(e) => setF({ ...f, interval_minutes: Number(e.target.value) })} /></Field>
+            <Field label="Intervalle (minutes)"><NumberInput integer min={1} value={f.interval_minutes} onChange={(v) => setF({ ...f, interval_minutes: v })} /></Field>
             <Field label="E-mail (compte serveur)"><input className="input" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
             <Field label="Mot de passe (compte serveur)"><input className="input" type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field>
-            <div className="sm:col-span-2"><button className="btn-primary" onClick={async () => { try { const r = await api.call("POST", "/api/sync/configure", f); toast(r.message); st.reload(); } catch (e) { toastError(e); } }}>Raccorder ce poste</button></div>
+            <div className="sm:col-span-2"><AsyncButton onClick={async () => { try { const r = await api.call("POST", "/api/sync/configure", { ...f, interval_minutes: toNum(f.interval_minutes, "Intervalle") ?? 15 }); toast(r.message); st.reload(); } catch (e) { toastError(e); } }}>Raccorder ce poste</AsyncButton></div>
           </div>}
         </Card>
       )}
@@ -287,13 +254,118 @@ function SystemTab() {
   );
 }
 
+const PROVIDER_LABEL: Record<string, string> = { microsoft: "Microsoft 365 / Outlook", google: "Google Agenda" };
+
+function CalendarAdmin() {
+  const { toast, toastError } = useApp();
+  const s = useApi<any>("/api/calendar/settings");
+  const [v, setV] = useState<any>(null);
+  useEffect(() => { if (s.data) setV({ ...s.data, microsoft_client_secret: "", google_client_secret: "" }); }, [s.data]);
+  if (!v) return <Spinner />;
+  const save = async () => {
+    try {
+      await api.call("PUT", "/api/calendar/settings", { microsoft_client_id: v.microsoft_client_id || null, microsoft_tenant: v.microsoft_tenant || "common",
+        google_client_id: v.google_client_id || null, public_base_url: v.public_base_url || null,
+        ...(v.microsoft_client_secret ? { microsoft_client_secret: v.microsoft_client_secret } : {}), ...(v.google_client_secret ? { google_client_secret: v.google_client_secret } : {}) });
+      toast("Configuration des agendas enregistrée."); s.reload();
+    } catch (e) { toastError(e); }
+  };
+  return (
+    <Card title="Configuration de l'agence (administrateur)">
+      <Notice tone="info">Pour proposer la connexion des agendas, enregistrez Archipel41 comme application auprès de Microsoft (portail Entra ID › Inscriptions d'applications)
+        et/ou de Google (Google Cloud Console › API et services › Identifiants, API « Google Calendar » activée), puis reportez ci-dessous l'identifiant et le secret.
+        <div className="mt-2">Adresse de redirection à déclarer : <code className="select-all">{v.redirect_uri}</code></div>
+        <div className="mt-1 text-xs">Autorisations demandées (minimales) — Microsoft : {v.scopes.microsoft.join(", ")} · Google : agenda (événements) et liste des calendriers, adresse e-mail.
+          Pour l'application Windows, choisissez le type « application de bureau / mobile » (adresse locale 127.0.0.1 acceptée quel que soit le port).</div></Notice>
+      <div className="grid md:grid-cols-2 gap-6 mt-4">
+        <div className="space-y-3"><div className="font-medium text-sm">Microsoft 365 / Outlook</div>
+          <Field label="Identifiant d'application (client ID)"><input className="input" value={v.microsoft_client_id || ""} onChange={(e) => setV({ ...v, microsoft_client_id: e.target.value })} /></Field>
+          <Field label="Locataire (tenant)" hint="« common » pour tout compte professionnel ou personnel ; sinon l'identifiant de votre organisation."><input className="input" value={v.microsoft_tenant || ""} onChange={(e) => setV({ ...v, microsoft_tenant: e.target.value })} /></Field>
+          <Secret label="Secret client (facultatif pour une application de bureau)" value={v.microsoft_client_secret} isSet={!!v.microsoft_client_secret_set} onChange={(x) => setV({ ...v, microsoft_client_secret: x })} /></div>
+        <div className="space-y-3"><div className="font-medium text-sm">Google Agenda</div>
+          <Field label="Identifiant client OAuth"><input className="input" value={v.google_client_id || ""} onChange={(e) => setV({ ...v, google_client_id: e.target.value })} /></Field>
+          <Secret label="Secret client" value={v.google_client_secret} isSet={!!v.google_client_secret_set} onChange={(x) => setV({ ...v, google_client_secret: x })} />
+          <Field label="Adresse publique du serveur (facultatif)" hint="Ex. https://archipel41.mon-agence.fr — utilisée pour l'adresse de redirection et les flux ICS."><input className="input" value={v.public_base_url || ""} onChange={(e) => setV({ ...v, public_base_url: e.target.value })} /></Field></div>
+      </div>
+      <SaveBar onSave={save} />
+    </Card>
+  );
+}
+
+function CalendarAccounts() {
+  const { toast, toastError } = useApp();
+  const d = useApi<any>("/api/calendar/accounts");
+  const [logs, setLogs] = useState<{ id: string; rows: any[] } | null>(null);
+  const [ics, setIcs] = useState<string | null>(null);
+  const connect = async (p: string) => {
+    try {
+      const r = await api.call("POST", `/api/calendar/connect/${p}`);
+      if ((window as any).archipelDesktop?.openExternal) { (window as any).archipelDesktop.openExternal(r.authorize_url); toast("Terminez l'autorisation dans votre navigateur, puis revenez ici.", "info"); }
+      else window.location.href = r.authorize_url;
+    } catch (e) { toastError(e); }
+  };
+  const upd = async (id: string, body: any) => { try { await api.call("PUT", `/api/calendar/accounts/${id}`, body); d.reload(); } catch (e) { toastError(e); } };
+  if (d.loading && !d.data) return <Spinner />;
+  const accs = d.data?.accounts || [];
+  return (
+    <div className="space-y-6">
+      <Card title="Mes comptes connectés">
+        <p className="text-sm text-muted mb-3">Vos rendez-vous Archipel41 (dont vous êtes organisateur ou participant) apparaissent dans votre agenda Outlook ou Google, et inversement.
+          Aucun mot de passe n'est demandé ni conservé : la connexion passe par la page officielle de Microsoft ou de Google. Sans compte connecté, l'agenda d'Archipel41 fonctionne normalement.</p>
+        <div className="flex flex-wrap gap-2 mb-4">{(["microsoft", "google"] as const).map((p) => (
+          <button key={p} className="btn-secondary" disabled={!d.data?.available?.[p] || accs.some((a: any) => a.provider === p)} title={!d.data?.available?.[p] ? "Non configuré par l'administrateur" : ""} onClick={() => connect(p)}>
+            <Plug size={15} /> Connecter {PROVIDER_LABEL[p]}</button>))}</div>
+        {!d.data?.available?.microsoft && !d.data?.available?.google && <Notice tone="warn">Aucune connexion d'agenda n'est encore configurée pour l'agence : un administrateur doit renseigner les identifiants d'application ci-dessus.</Notice>}
+        <div className="space-y-4">{accs.map((a: any) => (
+          <div key={a.id} className="border border-line rounded-lg p-4">
+            <div className="flex flex-wrap items-center gap-2"><b>{a.provider_label}</b><span className="text-sm text-muted">{a.account_email}</span>
+              <span className={`chip ${a.status === "actif" ? "bg-ok/15 text-ok" : a.status === "suspendu" ? "bg-sunken text-muted" : "bg-danger/15 text-danger"}`}>{a.status}</span>
+              <span className="text-xs text-muted ml-auto">{a.last_sync_at ? `Dernière synchronisation : ${dateTimeFr(a.last_sync_at)}` : "Jamais synchronisé"} · {a.links} rendez-vous liés</span></div>
+            {a.last_error && <div className="text-xs text-danger mt-1">{a.last_error}</div>}
+            {a.last_result?.message && !a.last_error && <div className="text-xs text-muted mt-1">{a.last_result.message}</div>}
+            <div className="grid md:grid-cols-2 gap-4 mt-3">
+              <div><div className="label">Calendriers synchronisés</div>{a.calendars.map((c: any) => (
+                <label key={c.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!c.selected} onChange={(e) => upd(a.id, { calendars: a.calendars.map((x: any) => (x.id === c.id ? { ...x, selected: e.target.checked } : x)) })} />
+                  {c.name}{c.primary && <span className="text-xs text-muted">(principal — reçoit les rendez-vous d'Archipel41)</span>}</label>))}</div>
+              <Field label="En cas de modification des deux côtés"><Select value={a.rule} onChange={(v) => upd(a.id, { rule: v })} options={Object.entries(d.data.rules).map(([k, l]: any) => ({ value: k, label: l }))} /></Field>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <AsyncButton className="btn-primary py-1" disabled={a.status === "suspendu"} onClick={async () => { try { const r = await api.call("POST", `/api/calendar/accounts/${a.id}/sync`); toast(r.message || "Synchronisé.", r.success ? "ok" : "error"); d.reload(); } catch (e) { toastError(e); } }}><RefreshCw size={14} /> Synchroniser maintenant</AsyncButton>
+              <button className="btn-secondary py-1" onClick={() => upd(a.id, { status: a.status === "suspendu" ? "actif" : "suspendu" })}>{a.status === "suspendu" ? "Reprendre" : "Suspendre"}</button>
+              <button className="btn-secondary py-1" onClick={async () => setLogs({ id: a.id, rows: await api.get(`/api/calendar/accounts/${a.id}/logs`) })}>Historique</button>
+              <button className="btn-ghost text-danger py-1 ml-auto" onClick={async () => { if (!window.confirm("Déconnecter ce compte ? Les rendez-vous restent dans Archipel41.")) return; try { await api.call("DELETE", `/api/calendar/accounts/${a.id}`); d.reload(); } catch (e) { toastError(e); } }}>Déconnecter</button>
+            </div>
+          </div>))}</div>
+      </Card>
+      <Card title="Abonnement ICS (lecture seule)">
+        <p className="text-sm text-muted">Alternative simple, compatible avec tous les agendas (iPhone, Android, Outlook, Thunderbird…) : abonnez-vous à cette adresse personnelle pour voir vos rendez-vous Archipel41 sur votre téléphone. Ne la partagez pas ; vous pouvez la renouveler à tout moment.</p>
+        {ics && <div className="mt-3 flex gap-2"><input className="input font-mono text-xs" readOnly value={ics} onFocus={(e) => e.target.select()} aria-label="Adresse ICS" />
+          <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(ics); toast("Adresse copiée."); }}><Check size={14} /> Copier</button></div>}
+        <div className="flex gap-2 mt-3"><AsyncButton className="btn-secondary" onClick={async () => { try { setIcs((await api.call("POST", "/api/calendar/ics-token")).url); } catch (e) { toastError(e); } }}>{ics ? "Renouveler l'adresse" : "Générer mon adresse d'abonnement"}</AsyncButton>
+          <button className="btn-ghost text-danger" onClick={async () => { try { await api.call("DELETE", "/api/calendar/ics-token"); setIcs(null); toast("Abonnement révoqué."); } catch (e) { toastError(e); } }}>Révoquer</button></div>
+      </Card>
+      {logs && <Modal open onClose={() => setLogs(null)} title="Historique des synchronisations" wide dismissable>
+        {!logs.rows.length ? <Empty title="Aucune synchronisation" /> : <ul className="divide-y divide-line">{logs.rows.map((r, i) => (
+          <li key={i} className="py-2 text-sm"><span className={`chip mr-2 ${r.success ? "bg-ok/15 text-ok" : "bg-danger/15 text-danger"}`}>{r.success ? "réussie" : "échec"}</span><span className="text-muted">{dateTimeFr(r.at)}</span> — {r.message}
+            {r.details?.length > 0 && <ul className="text-xs text-muted mt-1 pl-4 list-disc">{r.details.map((x: any, j: number) => <li key={j}>{x.evenement} : {x.conflit} → {x.decision}</li>)}</ul>}</li>))}</ul>}
+      </Modal>}
+    </div>
+  );
+}
+
+function CalendarTab() {
+  const { perms } = useApp();
+  return <div className="space-y-6">{perms.admin && <CalendarAdmin />}<CalendarAccounts /></div>;
+}
+
 export default function SettingsPage() {
   const { perms } = useApp();
-  const [tab, setTab] = useState(perms.admin ? "agence" : "compte");
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(params.get("onglet") || (perms.admin ? "agence" : "compte"));
   const tabs = [
     ...(perms.admin ? [{ id: "agence", label: "Agence" }] : []), { id: "utilisateurs", label: "Utilisateurs et permissions" },
     ...(perms.admin ? [{ id: "ia", label: "Intelligence artificielle" }, { id: "meteo", label: "Météo" }, { id: "urbanisme", label: "Urbanisme" }] : []),
-    { id: "sync", label: "Synchronisation" }, ...(perms.admin ? [{ id: "sauvegardes", label: "Sauvegardes" }, { id: "journal", label: "Journal" }] : []),
+    { id: "agendas", label: "Agendas externes" }, { id: "sync", label: "Synchronisation" }, ...(perms.admin ? [{ id: "sauvegardes", label: "Sauvegardes" }, { id: "journal", label: "Journal" }] : []),
     { id: "compte", label: "Mon compte" }, { id: "systeme", label: "Système" },
   ];
   return (
@@ -301,7 +373,7 @@ export default function SettingsPage() {
       <PageHeader title="Paramètres" icon={<Cog size={22} />} />
       <Tabs value={tab} onChange={setTab} tabs={tabs} />
       {tab === "agence" && <AgencyTab />}{tab === "utilisateurs" && <UsersTab />}{tab === "ia" && <AITab />}
-      {tab === "meteo" && <ServiceTab k="weather" />}{tab === "urbanisme" && <ServiceTab k="urbanisme" />}{tab === "sync" && <SyncTab />}
+      {tab === "meteo" && <ServiceTab k="weather" />}{tab === "urbanisme" && <ServiceTab k="urbanisme" />}{tab === "sync" && <SyncTab />}{tab === "agendas" && <CalendarTab />}
       {tab === "sauvegardes" && <BackupTab />}{tab === "journal" && <AuditTab />}{tab === "compte" && <AccountTab />}{tab === "systeme" && <SystemTab />}
     </div>
   );

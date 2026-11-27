@@ -127,7 +127,7 @@ def build() -> Doc:
             "Corrigez directement les cellules (désignation, quantité, unité, prix unitaire, montant, TVA, <b>statut</b>) ; les lignes surlignées ont une fiabilité d'extraction inférieure à 70 % ; survolez une ligne pour voir le texte source.",
             "Corrigez si besoin l'entreprise (ou cliquez sur « créer la fiche »), les délais, la validité, les conditions de paiement, les exclusions, les réserves et les variantes.",
             "Cliquez sur <b>Enregistrer les corrections</b> : les totaux et la TVA sont recalculés.",
-            "Un chef de projet ou un administrateur clique sur <b>Valider</b>.") +
+            "Un gestionnaire ou un administrateur clique sur <b>Valider</b>.") +
         "<h3>Comparer plusieurs offres</h3>" + ol(
             "Onglet <b>Devis</b> : cochez au moins deux devis du même lot.",
             "Cochez éventuellement <b>Conclusion rédigée par l'IA</b>, puis cliquez sur <b>Comparer</b>.",
@@ -192,7 +192,7 @@ def build() -> Doc:
            "rappels : notification Windows ou du navigateur et cloche de la barre supérieure ;", "compte rendu synthétisé et rapport PDF/Word."),
         ul("Rattachez chaque rendez-vous à son projet : il apparaît dans la fiche projet et alimente l'assistant.", "Rédigez le compte rendu le jour même avec actions, responsables et échéances."),
         ul("Les notifications de rappel s'affichent lorsque l'application (ou l'onglet du navigateur) est ouverte.",
-           "L'agenda n'est pas synchronisé avec Outlook ou Google Agenda dans cette version."))
+           "Synchronisation avec Outlook ou Google Agenda : Paramètres › Agendas (application déclarée chez Microsoft ou Google requise ; votre mot de passe n'est jamais enregistré)."))
     d.img("24_nouveau_rendez_vous", "Création d'un rendez-vous client.")
     d.img("25_conflit_agenda", "Détection d'un conflit d'agenda.")
     d.img("26_agenda_semaine", "Vue semaine.")
@@ -214,7 +214,7 @@ def build() -> Doc:
             "Onglet <b>Météo et propositions</b> : prévisions sur 14 jours ; les jours à risque pour une tâche prévue sont surlignés.",
             "Lisez l'<b>analyse des activités prévues</b> : pour chaque tâche exposée, les jours défavorables, les risques et la recommandation.",
             "Cliquez sur <b>Proposer des ajustements</b> : des propositions sont créées.",
-            "Un chef de projet <b>accepte</b> (la tâche et ses successeurs sont décalés) ou <b>refuse</b> chaque proposition. Aucune modification n'est appliquée sans validation."),
+            "Un gestionnaire <b>accepte</b> (la tâche et ses successeurs sont décalés) ou <b>refuse</b> chaque proposition. Aucune modification n'est appliquée sans validation."),
         "Dans l'espace de démonstration (météo simulée), le dallage béton est prévu pendant trois jours de pluie supérieure à 5 mm (risque de délavage du béton frais) "
         "et la maçonnerie comporte un jour de gel. Faute de fenêtre favorable dans l'horizon de prévision, Archipel41 recommande de prévoir des protections et de réévaluer à J-2 ; "
         "deux propositions sont soumises à la cheffe de projet. Lorsqu'une fenêtre favorable existe, la proposition consiste à décaler la tâche à cette date : "

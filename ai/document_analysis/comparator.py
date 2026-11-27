@@ -278,7 +278,7 @@ def compare(quotes: list[dict], reference: list[dict] | None = None, cctp: list[
                             "specs": specs, "references": refs, "quotes": per_quote})
 
     ranking = _rank(summaries)
-    return {
+    result = {
         "rows": rows,
         "summaries": summaries,
         "ranking": ranking,
@@ -287,6 +287,10 @@ def compare(quotes: list[dict], reference: list[dict] | None = None, cctp: list[
         "status_labels": STATUS_LABELS,
         "thresholds": {"match": MATCH_THRESHOLD, "unsure": UNSURE_THRESHOLD, "unusual": UNUSUAL_DEVIATION},
     }
+    # Remarques techniques et optimisation économique à qualité constante
+    from .optimize import analyse
+    result["optimization"] = analyse(result)
+    return result
 
 
 def _rank(summaries: list[dict]) -> list[dict]:
@@ -393,6 +397,9 @@ def rule_based_conclusion(result: dict, lot_label: str | None = None) -> str:
         caveats.append("ses réserves doivent être levées")
     if caveats:
         parts.append("Toutefois, " + " ; ".join(caveats) + ".")
+    if result.get("optimization"):
+        from .optimize import optimization_text
+        parts.append(optimization_text(result["optimization"]))
     parts.append("\nRecommandations : faire lever les points d'attention ci-dessus par écrit avant attribution, "
                  "demander la confirmation des postes non renseignés et la correction des anomalies de calcul. "
                  "Cette conclusion est générée par le moteur de règles d'Archipel41 à partir des données validées ; "

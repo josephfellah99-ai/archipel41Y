@@ -1,0 +1,999 @@
+{
+ "nom": "Arborescence projet ARCHIPEL 41",
+ "version": "modèles v4 (27/11/2026)",
+ "source": "Gabarit A41_PROJET adapté et validé par l'agence ; fonctions issues de l'audit documentaire ; notes « Classer ici » de l'agence.",
+ "conventions": {
+  "separateur": "-",
+  "date": "AAAA-MM-JJ",
+  "maitrise_ouvrage": "MOA"
+ },
+ "dossiers": [
+  {
+   "path": "1-Administration",
+   "label": "1-Administration",
+   "fonction": "Gestion administrative du projet : organisation, suivi, correspondances et comptes rendus d'études.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception",
+   "label": "2-Conception",
+   "fonction": "Études de conception : données d'entrée, études de travail et livrables par phase.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "3-Autorisation",
+   "label": "3-Autorisation",
+   "fonction": "Autorisations administratives (permis…) : pièces du dossier de demande et enregistrements (récépissés de dépôt, attendus, recours des tiers, réponses des services instructeurs, DROC, DAACT, certificat de conformité).",
+   "note": "Classer ici\n- récépissés depot,\n- attendus PC,\n- recours des tiers,\n- reponses des services instructeurs (ICPE, PPRI...),\n- Agrement idF,\n- DROC,\n- DAACT,\n- certificat de conformité",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres",
+   "label": "4-Economie - Appel Offres",
+   "fonction": "Économie du projet et consultation des entreprises.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation",
+   "label": "5-Réalisation",
+   "fonction": "Direction et suivi de l'exécution des travaux jusqu'à la fin de la garantie.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "6-Archivage phases",
+   "label": "6-Archivage phases",
+   "fonction": "Archivage des dossiers en fin de phase.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/10_General",
+   "label": "10_General",
+   "fonction": "Organisation et suivi des études (contrat, planification, interne, archivage). À sa racine : les Règles communes de gestion des documents (RCGD).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances",
+   "label": "11_Correspondances",
+   "fonction": "Correspondance du projet, classée par interlocuteur puis par sens (Envoyés / Reçus). Matrice de courrier à la racine.",
+   "note": "Classer ici la communication du projet : les flux de courriers entre l'administration, les entreprises,\nla maîtrise d'œuvre et la maîtrise d'ouvrage, classés par interlocuteur puis Envoyés / Reçus.\nUn sous-dossier peut être ajouté par chantier ou par entreprise.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/12_Comptes-rendus",
+   "label": "12_Comptes-rendus",
+   "fonction": "Ordres du jour et comptes rendus des réunions d'études (conception). Modèles CRR et ODJ à la racine.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/15_Communication",
+   "label": "15_Communication",
+   "fonction": "Dossier de publication et communication du projet.",
+   "note": "Classer ici\n- le dossier de publication du projet (cf. liste de contrôle Démarrage, feuille Méthodes).",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/10_General/1_Contrat - Factures",
+   "label": "1_Contrat - Factures",
+   "fonction": "Contrat de maîtrise d'œuvre (simplifié ou non) décrivant la mission ; factures.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/10_General/2_Planification",
+   "label": "2_Planification",
+   "fonction": "Planning général et de phase, tableau de suivi des faits marquants, synoptique des intervenants.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/10_General/3_Interne",
+   "label": "3_Interne",
+   "fonction": "Documents internes à l'agence pour le projet (organigramme de l'équipe, charge de travail, classeur qualité ?).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/10_General/4_Archivage",
+   "label": "4_Archivage",
+   "fonction": "Archivage administratif du projet.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/10_General/1_Contrat - Factures/Contrat",
+   "label": "Contrat",
+   "fonction": "Contrat(s) de maîtrise d'œuvre, avenants au contrat, lettre de commande.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/10_General/1_Contrat - Factures/Factures",
+   "label": "Factures",
+   "fonction": "Factures liées à la mission.",
+   "note": "Classer ici\n- les factures émises par l'agence (honoraires),\n- les factures reçues.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Administration",
+   "label": "Administration",
+   "fonction": "Correspondance avec les administrations (mairie, services instructeurs, concessionnaires…).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Courrier",
+   "label": "Courrier",
+   "fonction": "Correspondance générale (rôle exact non défini).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Entreprises",
+   "label": "Entreprises",
+   "fonction": "Correspondance avec les entreprises de travaux.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Maitrise-Oeuvre",
+   "label": "Maitrise-Oeuvre",
+   "fonction": "Correspondance avec les membres de l'équipe de maîtrise d'œuvre (BET, économiste, consultants).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Maitrise-Ouvrage",
+   "label": "Maitrise-Ouvrage",
+   "fonction": "Correspondance avec le maître d'ouvrage (et, le cas échéant, MOd / AMO).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Administration/Envoyés",
+   "label": "Envoyés",
+   "fonction": "Courriers émis par l'agence vers cet interlocuteur.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Administration/Reçus",
+   "label": "Reçus",
+   "fonction": "Courriers reçus de cet interlocuteur.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Courrier/Envoyés",
+   "label": "Envoyés",
+   "fonction": "Courriers émis par l'agence vers cet interlocuteur.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Courrier/Reçus",
+   "label": "Reçus",
+   "fonction": "Courriers reçus de cet interlocuteur.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Entreprises/Envoyés",
+   "label": "Envoyés",
+   "fonction": "Courriers émis par l'agence vers cet interlocuteur.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Entreprises/Reçus",
+   "label": "Reçus",
+   "fonction": "Courriers reçus de cet interlocuteur.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Maitrise-Oeuvre/Envoyés",
+   "label": "Envoyés",
+   "fonction": "Courriers émis par l'agence vers cet interlocuteur.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Maitrise-Oeuvre/Reçus",
+   "label": "Reçus",
+   "fonction": "Courriers reçus de cet interlocuteur.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Maitrise-Ouvrage/Envoyés",
+   "label": "Envoyés",
+   "fonction": "Courriers émis par l'agence vers cet interlocuteur.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/11_Correspondances/Maitrise-Ouvrage/Reçus",
+   "label": "Reçus",
+   "fonction": "Courriers reçus de cet interlocuteur.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/12_Comptes-rendus/MOA-MOE",
+   "label": "MOA-MOE",
+   "fonction": "Réunions entre maîtrise d'ouvrage et maîtrise d'œuvre.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/12_Comptes-rendus/MOE",
+   "label": "MOE",
+   "fonction": "Réunions internes à l'équipe de maîtrise d'œuvre.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "1-Administration/12_Comptes-rendus/Specifique",
+   "label": "Specifique",
+   "fonction": "Réunions spécifiques (thématiques, concessionnaires, services…).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/01_Données d'entrée",
+   "label": "01_Données d'entrée",
+   "fonction": "Données d'entrée du projet : check-lists de phase, contexte existant, programme, réglementations, tableau récapitulatif des contraintes.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes",
+   "label": "02_Etudes",
+   "fonction": "Documents de travail des études en cours (pièces écrites, graphiques, sujets spécifiques, présentations, diffusions, références).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/03_Livrables",
+   "label": "03_Livrables",
+   "fonction": "Dossiers livrés, par phase, figés à chaque émission dans un sous-dossier daté et indicé.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/01_Données d'entrée/Check-list",
+   "label": "Check-list",
+   "fonction": "Listes de contrôle des exigences par phase (ESQ, APS, APD, PRO, DCE, DPC, PCM) et grilles d'analyse (APS, APD-PRO).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/01_Données d'entrée/Contexte-Existant",
+   "label": "Contexte-Existant",
+   "fonction": "Connaissance du site et de l'existant : relevés, rapports de sol, photos, plan parcellaire, grille « Connaissance du contexte ».",
+   "note": "Classer ici:\n- etude géotechnique,\n- etude de pollution,\n- relevé ou plan des ouvrages existants enterrés,\n- plan des reseaux existants,\n- plan des carrieres\n- classement sismicité...\n\nClasser ici:\n- relevé géometre,\n- relevé des batiments existants,\n- diagnostic amiante,\n- relevé phytosanitaire,\n- carte IGN,\n- carte des inondations,\n- abords immediats...",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/01_Données d'entrée/Programme",
+   "label": "Programme",
+   "fonction": "Programme (et pré-programme) du maître d'ouvrage.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/01_Données d'entrée/Reglementations",
+   "label": "Reglementations",
+   "fonction": "Règles applicables (PLU, sécurité incendie, accessibilité, servitudes) et liste de contrôle de conformité réglementaire.",
+   "note": "Classer ici\n- récépissés depot,\n- attendus PC,\n- recours des tiers,\n- reponses des services instructeurs (ICPE, PPRI...),\n- Agrement idF,\n- DROC,\n- DAACT,\n- certificat de conformité\n\nClasser ici:\n- regles d'urbanisme (PLU),\n- Securité incendie,\n- accessibilité,\n- servitudes...",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/01_Données d'entrée/Contexte-Existant/Géometre",
+   "label": "Géometre",
+   "fonction": "Relevés du géomètre (limites, surface, topographie NGF, éléments singuliers, héberges).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/01_Données d'entrée/Contexte-Existant/Géotechnique",
+   "label": "Géotechnique",
+   "fonction": "Études géotechniques et rapports de sol.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/01_Données d'entrée/Contexte-Existant/Photos",
+   "label": "Photos",
+   "fonction": "Reportage photographique du site existant.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/01_Données d'entrée/Contexte-Existant/Plan parcellaire",
+   "label": "Plan parcellaire",
+   "fonction": "Plan de cadastre, fiches parcellaires.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/01_Données d'entrée/Reglementations/PLU",
+   "label": "PLU",
+   "fonction": "Documents du plan local d'urbanisme applicable.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/01_Pièces écrites",
+   "label": "01_Pièces écrites",
+   "fonction": "Pièces écrites de conception en cours (notices, descriptifs, liste des documents à produire…).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/02_Pièces graphiques",
+   "label": "02_Pièces graphiques",
+   "fonction": "Pièces graphiques de conception en cours (plans, coupes, façades, fichiers de dessin).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques",
+   "label": "03_Sujets specifiques",
+   "fonction": "Dossiers thématiques regroupés par dizaines : 10 sujets clés, 20 sujets en amont, 30 lots techniques, 40 clos-couvert, 50 thèmes programmatiques, 60 thèmes en aval.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/04_Presentations",
+   "label": "04_Presentations",
+   "fonction": "Supports de présentation (au maître d'ouvrage, en réunion…).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/05_Diffusions",
+   "label": "05_Diffusions",
+   "fonction": "Traçabilité des envois de documents : un sous-dossier par diffusion.",
+   "note": null,
+   "gabarit_sous_dossier": "AAAA-MM-JJ-DESTINATAIRE-CONTENU"
+  },
+  {
+   "path": "2-Conception/02_Etudes/06_References",
+   "label": "06_References",
+   "fonction": "Références (projets, documentation, images d'inspiration…).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/01_Pièces écrites/00_ARCHIVES",
+   "label": "00_ARCHIVES",
+   "fonction": "Versions remplacées des pièces écrites.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/02_Pièces graphiques/00_ARCHIVES",
+   "label": "00_ARCHIVES",
+   "fonction": "Versions remplacées des pièces graphiques.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/10_Surfaces",
+   "label": "10_Surfaces",
+   "fonction": "Tableaux de surfaces (Excel) et fichiers AutoCAD associés.",
+   "note": "Classer ici \n- les tableaux excel,\n- les fichiers autocad",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/11_Prescriptions - Archi",
+   "label": "11_Prescriptions - Archi",
+   "fonction": "Tableau des finitions, fiches produits.",
+   "note": "Classer ici \n- le tableau des finitions,\n- les fiches produits...",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/20_Securite incendie",
+   "label": "20_Securite incendie",
+   "fonction": "Études et notices de sécurité incendie.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/21_Developt - Durable",
+   "label": "21_Developt - Durable",
+   "fonction": "Certifications HQE, BREEAM, LEED et autres données de la démarche environnementale.",
+   "note": "Classer ici \n- certification HQE, BREEAM, LEED,\n- les autres données relatives à la demarche environnementale...",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/22_Amenagt - Urbain - VRD",
+   "label": "22_Amenagt - Urbain - VRD",
+   "fonction": "Interface avec un contexte urbain en projet (ZAC, DDE, EPAD…), voiries et réseaux.",
+   "note": "Classer ici \n- si le contexte est en projet (interface ZAC, DDE, EPAD...)",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/23_CDAC",
+   "label": "23_CDAC",
+   "fonction": "Dossier relatif à l'autorisation d'exploitation commerciale (CDAC).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/30_Structure",
+   "label": "30_Structure",
+   "fonction": "Études de structure.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/31_CVC",
+   "label": "31_CVC",
+   "fonction": "Études CVC (et désenfumage).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/32_Plomberie",
+   "label": "32_Plomberie",
+   "fonction": "Études de plomberie.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/33_Electricite",
+   "label": "33_Electricite",
+   "fonction": "Études d'électricité, subdivisées en courants forts (CFO) et courants faibles (CFA).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/34_Ascenseurs",
+   "label": "34_Ascenseurs",
+   "fonction": "Études ascenseurs / transports mécaniques.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/40_Façades et Couverture",
+   "label": "40_Façades et Couverture",
+   "fonction": "Études de façades et de couverture.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/41_Nacelle",
+   "label": "41_Nacelle",
+   "fonction": "Nacelles et dispositifs d'entretien des façades.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/50_cuisine - Resto",
+   "label": "50_cuisine - Resto",
+   "fonction": "Programme et études cuisine / restauration.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/51_piscine",
+   "label": "51_piscine",
+   "fonction": "Programme et études piscine.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/60_Acoustique",
+   "label": "60_Acoustique",
+   "fonction": "Études acoustiques.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/61_Eclairage",
+   "label": "61_Eclairage",
+   "fonction": "Études d'éclairage.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/62_Paysage",
+   "label": "62_Paysage",
+   "fonction": "Études paysagères.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/11_Prescriptions - Archi/References",
+   "label": "References",
+   "fonction": "Références de produits et de prescriptions architecturales.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/33_Electricite/CFA",
+   "label": "CFA",
+   "fonction": "Courants faibles.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/03_Sujets specifiques/33_Electricite/CFO",
+   "label": "CFO",
+   "fonction": "Courants forts.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/02_Etudes/04_Presentations/Archives",
+   "label": "Archives",
+   "fonction": "Présentations antérieures / remplacées.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "2-Conception/03_Livrables/01_DIAG",
+   "label": "01_DIAG",
+   "fonction": "Livrables de la phase de diagnostic.",
+   "note": null,
+   "gabarit_sous_dossier": "AAAA-MM-JJ-PHASE-INDICE"
+  },
+  {
+   "path": "2-Conception/03_Livrables/02_ESQ",
+   "label": "02_ESQ",
+   "fonction": "Livrables de l'esquisse.",
+   "note": null,
+   "gabarit_sous_dossier": "AAAA-MM-JJ-PHASE-INDICE"
+  },
+  {
+   "path": "2-Conception/03_Livrables/03_APS",
+   "label": "03_APS",
+   "fonction": "Livrables de l'APS.",
+   "note": null,
+   "gabarit_sous_dossier": "AAAA-MM-JJ-PHASE-INDICE"
+  },
+  {
+   "path": "2-Conception/03_Livrables/04_APD",
+   "label": "04_APD",
+   "fonction": "Livrables de l'APD.",
+   "note": null,
+   "gabarit_sous_dossier": "AAAA-MM-JJ-PHASE-INDICE"
+  },
+  {
+   "path": "2-Conception/03_Livrables/05_PCG",
+   "label": "05_PCG",
+   "fonction": "Livrables d'une phase « PCG » (permis de construire ?).",
+   "note": null,
+   "gabarit_sous_dossier": "AAAA-MM-JJ-PHASE-INDICE"
+  },
+  {
+   "path": "2-Conception/03_Livrables/06_PRO",
+   "label": "06_PRO",
+   "fonction": "Livrables du PRO (dossier optionnel).",
+   "note": "Dossier optionnel : à utiliser lorsque la mission comprend une phase PRO ; sinon, il peut être supprimé.\nClasser ici\n- les livrables du PRO, un sous-dossier par émission (AAAA-MM-JJ-PHASE-INDICE).",
+   "gabarit_sous_dossier": "AAAA-MM-JJ-PHASE-INDICE"
+  },
+  {
+   "path": "2-Conception/03_Livrables/07_DCE",
+   "label": "07_DCE",
+   "fonction": "Livrables du DCE.",
+   "note": null,
+   "gabarit_sous_dossier": "AAAA-MM-JJ-PHASE-INDICE"
+  },
+  {
+   "path": "2-Conception/03_Livrables/08_DOE",
+   "label": "08_DOE",
+   "fonction": "Livrables « DOE ».",
+   "note": null,
+   "gabarit_sous_dossier": "AAAA-MM-JJ-PHASE-INDICE"
+  },
+  {
+   "path": "3-Autorisation/01_Pièces ecrites",
+   "label": "01_Pièces ecrites",
+   "fonction": "Pièces écrites du dossier de demande d'autorisation (formulaire CERFA, notices…).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "3-Autorisation/02_Pièces graphiques",
+   "label": "02_Pièces graphiques",
+   "fonction": "Pièces graphiques du dossier de demande d'autorisation.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/01_Estimatif",
+   "label": "01_Estimatif",
+   "fonction": "Estimations du coût des travaux.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/02_CCAG-CCAP",
+   "label": "02_CCAG-CCAP",
+   "fonction": "Clauses administratives (CCAG de référence, CCAP du projet).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/03_CCTP",
+   "label": "03_CCTP",
+   "fonction": "Cahiers des clauses techniques particulières.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/04_DPGF",
+   "label": "04_DPGF",
+   "fonction": "Décompositions du prix (cadres DPGF).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/05_Consultation",
+   "label": "05_Consultation",
+   "fonction": "Organisation de la consultation des entreprises.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/06_Analyse",
+   "label": "06_Analyse",
+   "fonction": "Réception et analyse des offres, désignation des entreprises.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/05_Consultation/01_Liste",
+   "label": "01_Liste",
+   "fonction": "Liste des entreprises consultées.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/05_Consultation/02_Planning Visite",
+   "label": "02_Planning Visite",
+   "fonction": "Planning des visites de site par les candidats.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/06_Analyse/01_Offres-Echanges",
+   "label": "01_Offres-Echanges",
+   "fonction": "Offres par lot, fiches question, variantes, pièces complémentaires.",
+   "note": "Classer ici\n- offres par lot,\n- Fiche question,\n- variantes,\n- pieces ecrites et pieces graphiques complementaires.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/06_Analyse/02_Analyse Offres",
+   "label": "02_Analyse Offres",
+   "fonction": "Rapport d'analyse par lot, synthèse des rapports, négociation.",
+   "note": "Classer ici\n- rapport d'analyse par lot,\n- synthese des rapports,\n- negociation.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "4-Economie - Appel Offres/06_Analyse/03_Designation entreprises",
+   "label": "03_Designation entreprises",
+   "fonction": "Courrier du maître d'ouvrage de désignation, notifications et refus aux entreprises.",
+   "note": "Classer ici\n- courrier du maître d'ouvrage de désignation des entreprises\n- courriers de notification aux entreprises\n- courriers de refus aux entreprises",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/01_Marchés - OS",
+   "label": "01_Marchés - OS",
+   "fonction": "Marchés de travaux, avenants et ordres de service.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/02_Planning",
+   "label": "02_Planning",
+   "fonction": "Plannings travaux.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/03_Gestion Financière",
+   "label": "03_Gestion Financière",
+   "fonction": "Travaux modificatifs (vérification des devis), négociation, approbations, avenants et OS, propositions de paiement, situations de travaux, suivi budgétaire mensuel, compte prorata.",
+   "note": "- Controle travaux modificatifs (verification des devis),\n- Negociation,\n- Gestion de l'avancement des approbations (devis et travaux modificatifs),\n- Etablissement et transmission à la MOA des Avenants et OS,\n- Etablissement des propositions de paiement et transmission,\n- Verification des situations de travaux,\n- Approbations des situations,\n- Suivi du budget construction (rapport mensuel),\n(suivi compte prorata).",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/04_Prestataires",
+   "label": "04_Prestataires",
+   "fonction": "Documents des prestataires intervenant hors marchés de travaux.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/05_Organisation chantier",
+   "label": "05_Organisation chantier",
+   "fonction": "Organisation du chantier. Organigramme type « Direction projet » à la racine.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/06_EXE entreprises",
+   "label": "06_EXE entreprises",
+   "fonction": "Études d'exécution produites par les entreprises.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/07_Synthese",
+   "label": "07_Synthese",
+   "fonction": "Contrôle, animation, pilotage ; arbitrages ; études de synthèse technique, notes de calcul, dossier technique.",
+   "note": "- Controle, animation, pilotage.\n- Arbitrage architectural et technique,\n- Informations complementaires,\n- Etudes de synthese technique, note de calcul, dossier technique.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/08_Visa",
+   "label": "08_Visa",
+   "fonction": "Mission VISA : méthode, circuit de validation, visas architecte et BET, gestion des visas.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/09_CR",
+   "label": "09_CR",
+   "fonction": "Comptes rendus MOE/MOEX, OPC, information MO, réunions spécifiques, contrôles de conformité et de qualité. Modèle de CR de chantier à la racine.",
+   "note": "Classer ici\n- Compte-rendu MOE/MOEX,\n- Compte-rendu OPC,\n- Information MOA,\n- Reunion specifique,\n- Controle conformité,\n- Controle qualite.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/10_Photos",
+   "label": "10_Photos",
+   "fonction": "Photos de chantier, une date par sous-dossier.",
+   "note": null,
+   "gabarit_sous_dossier": "AAAA-MM-JJ"
+  },
+  {
+   "path": "5-Réalisation/11_Jalons",
+   "label": "11_Jalons",
+   "fonction": "Attestations hors d'eau, hors d'air, réception inter-entreprises.",
+   "note": "Classer ici\n- Attestation Hors d'eau,\n- Attestation Hors d'air,\n- Reception inter-entreprises.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/12_OPR-Réception",
+   "label": "12_OPR-Réception",
+   "fonction": "Organisation des OPR, visite et PV de réception, réserves et levées de réserves.",
+   "note": "Classer ici\n- Organisation des OPR (CR et PV),\n- Planification,\n- Rapport de visite du controleur technique,\n- Visite de reception\n- Reception,\n- Liste des reserves,\n- PV reception (redaction et obtention signatures entreprises),\n- planification des levees de reserves - suivi - relances,\n- visites levees de reserves\n- Acceptation levees\n- Redaction PV levee de reserves",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/13_Fin Travaux",
+   "label": "13_Fin Travaux",
+   "fonction": "Dossiers de fin de travaux : DOE, DIUO, DGD, parfait achèvement, attestations.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/01_Marchés - OS/21_Documents Administratifs",
+   "label": "21_Documents Administratifs",
+   "fonction": "Pièces administratives des marchés (rôle exact non défini).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/01_Marchés - OS/22_Marchés de Base",
+   "label": "22_Marchés de Base",
+   "fonction": "Acte d'engagement, cahiers des charges (CCAG, CCTG, CCAP, CCTP), planning entreprise, pièces contractuelles mentionnées comme telles, offre technique et financière.",
+   "note": "Classer ici\n- Acte d'engagment\n\nConcernant les prix portés dans l'acte d'engagement, La mention du prix dépend de la forme des prix :\n.Dans les marchés à prix forfaitaire, les actes d’engagement peuvent être accompagnés d’une décomposition du prix (DPGF) qui n’a pas de valeur contractuelle sauf dispositions contraires du marché.\n.Dans les marchés à bons de commande, les prix figurent dans un bordereau de prix unitaires annexé à l’acte d’engagement ; dans un tel cas l’acte d’engagement mentionne le minimum et le maximum ou, le cas échéant, l’absence de minimum et de maximum.\n.Dans les marchés à prix unitaires, les prix figurent dans un bordereau des prix unitaires annexé à l’acte d’engagement, ce dernier ne comporte alors qu’un montant esimatif.\n.Dans les marchés en groupement conjoint comportant des parties techniques distinctes, chaque partie technique fait l’objet d’un prix.\n.Dans les marchés à tranches conditionnelles, l’acte d’engagement indique le montant de chacune des tranches.\n\n- Cahier des Charges:\n\t-Cahiers des clauses administratives generales (CCAG)\n\t-Cahiers des clauses techniques generales (CCTG)\n\t-Cahiers des clauses administratives particulières (CCAP)\n\t-Cahiers des clauses techniques particulières (CCTP)\n\n- Planning entreprise\n\n- Pieces contractuelles (si mentionnées comme telles): \n.Programme\n.Dossier\n.Plans\n.Note de calcul\n.cahier de sondage\n.Dossier géotechnique\n.Etc.\n\n- L'offre technique et financiere",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/01_Marchés - OS/23_Avenants Marchés",
+   "label": "23_Avenants Marchés",
+   "fonction": "Avenants aux marchés. Contient aussi les modèles d'ordre de service.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/01_Marchés - OS/24_Agrement sous-traitants",
+   "label": "24_Agrement sous-traitants",
+   "fonction": "Agrément des sous-traitants des entreprises.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/01_Marchés - OS/25_Echeancier",
+   "label": "25_Echeancier",
+   "fonction": "Échéancier (de paiement ou contractuel).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/02_Planning/41_Planning previsionnel",
+   "label": "41_Planning previsionnel",
+   "fonction": "Planning prévisionnel des travaux.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/02_Planning/42_Planning detaille d'execution",
+   "label": "42_Planning detaille d'execution",
+   "fonction": "Planning détaillé d'exécution.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/04_Prestataires/51_BET",
+   "label": "51_BET",
+   "fonction": "Bureaux d'études techniques.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/04_Prestataires/52_Concessionnaires",
+   "label": "52_Concessionnaires",
+   "fonction": "Concessionnaires de réseaux.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/04_Prestataires/53_BC",
+   "label": "53_BC",
+   "fonction": "Bureau de contrôle (contrôleur technique).",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/04_Prestataires/54_CSPS",
+   "label": "54_CSPS",
+   "fonction": "Coordonnateur SPS.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/04_Prestataires/55_Geometre",
+   "label": "55_Geometre",
+   "fonction": "Géomètre.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/04_Prestataires/56_Geotechnicien",
+   "label": "56_Geotechnicien",
+   "fonction": "Géotechnicien.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/04_Prestataires/57_XXX",
+   "label": "57_XXX",
+   "fonction": "Emplacement réservé à un prestataire à nommer selon le projet.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/05_Organisation chantier/61_Panneau chantier",
+   "label": "61_Panneau chantier",
+   "fonction": "Panneau de chantier.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/05_Organisation chantier/62_Plan d'installation",
+   "label": "62_Plan d'installation",
+   "fonction": "Plan d'installation de chantier.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/05_Organisation chantier/63_DROC",
+   "label": "63_DROC",
+   "fonction": "Déclaration d'ouverture de chantier.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/05_Organisation chantier/64_OS",
+   "label": "64_OS",
+   "fonction": "Ordres de service émis.",
+   "note": "Classer ici\n- l'original des ordres de service signés.\nUne copie ou une référence peut être associée dans 03_Gestion Financière (conséquences financières)\nou dans 01_Marchés - OS/23_Avenants Marchés (lien avec un avenant). Ne pas multiplier les originaux.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/05_Organisation chantier/65_Circuit diffusion",
+   "label": "65_Circuit diffusion",
+   "fonction": "Circuit de diffusion des documents de chantier.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/05_Organisation chantier/66_Hygiene et Securite",
+   "label": "66_Hygiene et Securite",
+   "fonction": "Hygiène et sécurité du chantier.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/06_EXE entreprises/71_Lots",
+   "label": "71_Lots",
+   "fonction": "Documents d'exécution par lot.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/06_EXE entreprises/71_Lots/Temoins Echantillons",
+   "label": "Temoins Echantillons",
+   "fonction": "Cellules témoins / prototypes, échantillons, fabrication (PV d'essai), visites d'usine.",
+   "note": "Classer ici\n- Cellules temoins prototypes (definition, planning, controle qualite et conformite d'EXE),\n- Echantillons (planning, approbation),\n- Fabrication (PV d'essai, approbation)\n- Visite usine (definition, planification, CR).",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/08_Visa/91_Visa Archi",
+   "label": "91_Visa Archi",
+   "fonction": "Visas de conformité architecturale et fiches de validation fournitures / matériaux.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/08_Visa/92_Visa BET",
+   "label": "92_Visa BET",
+   "fonction": "Visas des bureaux d'études techniques.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/08_Visa/93_Gestion des Visas",
+   "label": "93_Gestion des Visas",
+   "fonction": "Tableaux de suivi des visas et des validations de matériaux, listes prévisionnelles des documents d'exécution.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/11_Jalons/Diffusions",
+   "label": "Diffusions",
+   "fonction": "Diffusion des documents de jalon.",
+   "note": null,
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/13_Fin Travaux/141_DOE",
+   "label": "141_DOE",
+   "fonction": "Planification et relances, DOE, notices techniques, récolement, contrats d'entretien, diffusion.",
+   "note": "classer ici\n- Planification et relance,\n- DOE, notices techniques, recollement, contrat d'entretien,\n- Diffusion.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/13_Fin Travaux/142_DIUO",
+   "label": "142_DIUO",
+   "fonction": "Dossier d'intervention ultérieure sur l'ouvrage (présentation, intervenants, dossier de maintenance, fiches d'intervention).",
+   "note": "classer ici\n- une présentation générale de l'ouvrage et des conditions de sa réalisation ;\n- la liste de tous les intervenants de l'opération ;\n- le dossier de maintenance (au moins pour les établissements régis par le Code du travail) ;\n- les fiches d'intervention ultérieure avec les risques liés aux accès sur le lieu d'intervention et les risques liés à l'intervention elle-même",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/13_Fin Travaux/143_DGD",
+   "label": "143_DGD",
+   "fonction": "Décompte général et définitif : projet de décompte final, certificat de paiement du solde, récapitulation des acomptes et du solde.",
+   "note": "classer ici\n- Le projet de décompte final,\n- Le certificat de paiement de solde,\n- La récapitulation des acomptes et du solde.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/13_Fin Travaux/144_Parfait Achèvement",
+   "label": "144_Parfait Achèvement",
+   "fonction": "PV de réception, planification des garanties (parfait achèvement, biennale, décennale), suivi des réserves, registre, visite de fin de GPA.",
+   "note": "classer ici\n- PV reception (redaction et obtention signatures entreprises),\n- Planification garantie de parfait achevement, Biennale et decenale.\n- Suivi des levées de reserves garantie,\n- Tenue a jour du registre de garantie de parfait achevement,\n- Visite de fin de parfait achevement.",
+   "gabarit_sous_dossier": null
+  },
+  {
+   "path": "5-Réalisation/13_Fin Travaux/145-Attestations",
+   "label": "145-Attestations",
+   "fonction": "Déclaration d'achèvement des travaux (DACT), attestations diverses.",
+   "note": "classer ici\n- Declaration d'achevement de travaux (DACT),\n- Attestations diverses.",
+   "gabarit_sous_dossier": null
+  }
+ ]
+}

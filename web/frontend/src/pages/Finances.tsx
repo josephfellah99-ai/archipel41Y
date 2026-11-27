@@ -2,8 +2,8 @@ import { Wallet, Plus, Trash2, FileText } from "lucide-react";
 import { useState } from "react";
 import { api, download } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
-import { dateFr, eur, FIN_STATUS, FINANCE_KINDS } from "../lib/format";
-import { Card, Empty, ErrorBox, Field, Modal, Notice, PageHeader, Select, Spinner, Stat, Tabs } from "../components/ui";
+import { dateFr, eur, FIN_STATUS, FINANCE_KINDS, parseNum, toNum } from "../lib/format";
+import { AsyncButton, Card, Empty, ErrorBox, Field, Modal, Notice, NumberInput, PageHeader, Select, Spinner, Stat, Tabs } from "../components/ui";
 
 function LotBars({ lots }: { lots: any[] }) {
   const max = Math.max(1, ...lots.map((l) => Math.max(l.budget || 0, l.engage || 0)));
@@ -29,29 +29,33 @@ function EntryModal({ entry, projectId, lots, companies, onClose, onSaved }: any
   const [f, setF] = useState<any>(entry);
   const save = async () => {
     try {
-      const body = { ...f, project_id: projectId, amount_ht: Number(String(f.amount_ht).replace(",", ".")), vat_rate: Number(f.vat_rate), lot_id: f.lot_id || null, company_id: f.company_id || null,
-        due_date: f.due_date || null, amount_ttc: null, situation_number: f.situation_number ? Number(f.situation_number) : null, progress_percent: f.progress_percent ? Number(f.progress_percent) : null };
+      const amount = toNum(f.amount_ht, "Montant HT");
+      if (amount === null) throw new Error("Montant HT : champ obligatoire.");
+      if (!f.entry_date) throw new Error("Date : champ obligatoire.");
+      const body = { ...f, project_id: projectId, amount_ht: amount, vat_rate: toNum(f.vat_rate, "TVA") ?? 20, lot_id: f.lot_id || null, company_id: f.company_id || null,
+        due_date: f.due_date || null, amount_ttc: null, situation_number: toNum(f.situation_number, "N° de situation"), progress_percent: toNum(f.progress_percent, "Avancement cumulé") };
+      for (const k of ["created_at", "updated_at", "deleted", "dirty", "base_version", "agency_id"]) delete body[k];
       if (f.id) await api.put(`/api/finance-entries/${f.id}`, body, f.label); else await api.post("/api/finance-entries", body, f.label);
       onSaved(); onClose();
     } catch (e) { toastError(e); }
   };
   return (
     <Modal open onClose={onClose} title={f.id ? f.label : "Nouvelle écriture"} footer={<>
-      {f.id && perms.delete && <button className="btn-ghost text-danger mr-auto" onClick={async () => { await api.del(`/api/finance-entries/${f.id}`); onSaved(); onClose(); }}><Trash2 size={15} /> Supprimer</button>}
-      <button className="btn-secondary" onClick={onClose}>Annuler</button>{perms.write && <button className="btn-primary" onClick={save} disabled={!f.label || f.amount_ht === ""}>Enregistrer</button>}</>}>
+      {f.id && perms.delete && <button className="btn-ghost text-danger mr-auto" onClick={async () => { try { await api.del(`/api/finance-entries/${f.id}`); onSaved(); onClose(); } catch (e) { toastError(e); } }}><Trash2 size={15} /> Supprimer</button>}
+      <button className="btn-secondary" onClick={onClose}>Annuler</button>{perms.write && <AsyncButton onClick={save} disabled={!f.label?.trim() || parseNum(f.amount_ht) === null}>Enregistrer</AsyncButton>}</>}>
       <div className="grid sm:grid-cols-2 gap-3">
         <Field label="Nature"><Select value={f.kind} onChange={(v) => setF({ ...f, kind: v })} options={Object.entries(FINANCE_KINDS).map(([v, l]) => ({ value: v, label: l }))} /></Field>
         <Field label="Statut"><Select value={f.status} onChange={(v) => setF({ ...f, status: v })} options={Object.entries(FIN_STATUS).map(([v, l]) => ({ value: v, label: l }))} /></Field>
         <Field label="Libellé *" className="sm:col-span-2"><input className="input" value={f.label} onChange={(e) => setF({ ...f, label: e.target.value })} /></Field>
         <Field label="Lot"><Select value={f.lot_id || ""} onChange={(v) => setF({ ...f, lot_id: v })} placeholder="—" options={lots.map((l: any) => ({ value: l.id, label: `${l.code} ${l.name}` }))} /></Field>
         <Field label="Entreprise"><Select value={f.company_id || ""} onChange={(v) => setF({ ...f, company_id: v })} placeholder="—" options={companies.map((c: any) => ({ value: c.id, label: c.name }))} /></Field>
-        <Field label="Montant HT (€) *"><input className="input" inputMode="decimal" value={f.amount_ht} onChange={(e) => setF({ ...f, amount_ht: e.target.value })} /></Field>
+        <Field label="Montant HT (€) *" hint={parseNum(f.amount_ht) !== null ? `TTC estimé : ${eur(Math.round(parseNum(f.amount_ht)! * (1 + Number(f.vat_rate) / 100) * 100) / 100)}` : "Ex. 12 500,00"}><NumberInput suffix="€" value={f.amount_ht} onChange={(v) => setF({ ...f, amount_ht: v })} /></Field>
         <Field label="TVA (%)" hint="Le TTC est calculé par le moteur (arrondi au centime)."><Select value={String(f.vat_rate)} onChange={(v) => setF({ ...f, vat_rate: v })} options={["20", "10", "5.5", "2.1", "0"].map((v) => ({ value: v, label: `${v.replace(".", ",")} %` }))} /></Field>
-        <Field label="Date"><input className="input" type="date" value={f.entry_date} onChange={(e) => setF({ ...f, entry_date: e.target.value })} /></Field>
+        <Field label="Date" required><input className="input" type="date" value={f.entry_date || ""} onChange={(e) => setF({ ...f, entry_date: e.target.value })} /></Field>
         <Field label="Échéance"><input className="input" type="date" value={f.due_date || ""} onChange={(e) => setF({ ...f, due_date: e.target.value })} /></Field>
         <Field label="Référence"><input className="input" value={f.reference || ""} onChange={(e) => setF({ ...f, reference: e.target.value })} /></Field>
-        {f.kind === "situation" && <><Field label="N° de situation"><input className="input" value={f.situation_number || ""} onChange={(e) => setF({ ...f, situation_number: e.target.value })} /></Field>
-          <Field label="Avancement cumulé (%)"><input className="input" value={f.progress_percent || ""} onChange={(e) => setF({ ...f, progress_percent: e.target.value })} /></Field></>}
+        {f.kind === "situation" && <><Field label="N° de situation"><NumberInput integer min={1} value={f.situation_number} onChange={(v) => setF({ ...f, situation_number: v })} /></Field>
+          <Field label="Avancement cumulé (%)"><NumberInput min={0} max={100} suffix="%" value={f.progress_percent} onChange={(v) => setF({ ...f, progress_percent: v })} /></Field></>}
         <Field label="Notes" className="sm:col-span-2"><textarea className="input" value={f.notes || ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
       </div>
     </Modal>
@@ -75,7 +79,10 @@ function ProjectFinances({ projectId }: { projectId: string }) {
   const company = Object.fromEntries((companies.data || []).map((c) => [c.id, c.name]));
   const rows = (entries.data || []).filter((e) => !kind || e.kind === kind);
   const saveBudget = async (b: any) => {
-    try { await api.put(`/api/budget-lines/${b.id}`, { ...b, initial_amount: Number(b.initial_amount), current_amount: Number(b.current_amount) }, b.label); toast("Budget mis à jour."); reload(); } catch (e) { toastError(e); }
+    try {
+      await api.put(`/api/budget-lines/${b.id}`, { ...b, initial_amount: toNum(b.initial_amount, "Montant initial") ?? 0, current_amount: toNum(b.current_amount, "Montant actualisé") ?? 0 }, b.label);
+      toast("Budget mis à jour."); reload();
+    } catch (e) { toastError(e); }
   };
   return (
     <div className="space-y-6">
@@ -111,15 +118,15 @@ function ProjectFinances({ projectId }: { projectId: string }) {
                   <td><span className={`chip ${e.status === "paye" ? "bg-ok/15 text-ok" : e.status === "annule" ? "bg-sunken text-muted" : "bg-info/15 text-info"}`}>{FIN_STATUS[e.status]}</span></td></tr>))}</tbody></table></div>)}
         </Card>)}
       {tab === "budget" && (
-        <Card title="Lignes budgétaires (HT)" pad={false} actions={perms.write && <button className="btn-secondary" onClick={async () => { await api.post("/api/budget-lines", { project_id: projectId, label: "Nouvelle ligne", initial_amount: 0, current_amount: 0 }); blines.reload(); }}><Plus size={15} /> Ligne</button>}>
+        <Card title="Lignes budgétaires (HT)" pad={false} actions={perms.write && <AsyncButton className="btn-secondary" onClick={async () => { try { await api.post("/api/budget-lines", { project_id: projectId, label: "Nouvelle ligne", initial_amount: 0, current_amount: 0 }); blines.reload(); } catch (e) { toastError(e); } }}><Plus size={15} /> Ligne</AsyncButton>}>
           {!blines.data?.length ? <Empty title="Aucune ligne budgétaire">Sans ligne détaillée, le budget actualisé = budget initial du projet + travaux supplémentaires.</Empty> : (
             <table className="table"><thead><tr><th>Libellé</th><th className="text-right">Initial</th><th className="text-right">Actualisé</th><th className="text-right">Écart</th><th /></tr></thead>
               <tbody>{blines.data.map((b, i) => (
                 <tr key={b.id}><td><input className="input py-1" disabled={!perms.write} value={b.label} onChange={(e) => blines.setData(blines.data!.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} /></td>
-                  <td><input className="input py-1 text-right w-32 ml-auto" disabled={!perms.write} value={b.initial_amount} onChange={(e) => blines.setData(blines.data!.map((x, j) => (j === i ? { ...x, initial_amount: e.target.value } : x)))} /></td>
-                  <td><input className="input py-1 text-right w-32 ml-auto" disabled={!perms.write} value={b.current_amount} onChange={(e) => blines.setData(blines.data!.map((x, j) => (j === i ? { ...x, current_amount: e.target.value } : x)))} /></td>
-                  <td className="text-right tabular-nums">{eur(Number(b.current_amount) - Number(b.initial_amount), 0)}</td>
-                  <td>{perms.write && <button className="btn-secondary py-1" onClick={() => saveBudget(b)}>OK</button>}</td></tr>))}</tbody></table>)}
+                  <td className="w-36"><NumberInput className="py-1 text-right" disabled={!perms.write} value={b.initial_amount} onChange={(v) => blines.setData(blines.data!.map((x, j) => (j === i ? { ...x, initial_amount: v } : x)))} aria-label="Montant initial" /></td>
+                  <td className="w-36"><NumberInput className="py-1 text-right" disabled={!perms.write} value={b.current_amount} onChange={(v) => blines.setData(blines.data!.map((x, j) => (j === i ? { ...x, current_amount: v } : x)))} aria-label="Montant actualisé" /></td>
+                  <td className="text-right tabular-nums">{eur((parseNum(b.current_amount) ?? 0) - (parseNum(b.initial_amount) ?? 0), 0)}</td>
+                  <td>{perms.write && <AsyncButton className="btn-secondary py-1" onClick={() => saveBudget(b)}>Enregistrer</AsyncButton>}</td></tr>))}</tbody></table>)}
         </Card>)}
       {edit && <EntryModal entry={edit} projectId={projectId} lots={lots.data || []} companies={companies.data || []} onClose={() => setEdit(null)} onSaved={reload} />}
     </div>

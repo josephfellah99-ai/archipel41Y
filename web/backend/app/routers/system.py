@@ -23,6 +23,35 @@ from ..services import sync as sync_svc
 router = APIRouter(prefix="/api", tags=["système"])
 EDITABLE = {"ai", "weather", "urbanisme", "agency", "backup"}
 
+# Guides embarqués dans l'application (liste fermée : aucun chemin arbitraire n'est servi)
+GUIDES = {
+    "guide-pratique": ("ARCHIPEL41_GUIDE_PRATIQUE.pdf", "Guide pratique (style suisse)"),
+    "utilisation": ("GUIDE_UTILISATION_ARCHIPEL41.pdf", "Guide d'utilisation détaillé"),
+    "installation": ("GUIDE_INSTALLATION_ARCHIPEL41.pdf", "Guide d'installation"),
+    "technique": ("DOCUMENTATION_TECHNIQUE.pdf", "Documentation technique"),
+}
+
+
+def _guides_dir():
+    from ..config import ROOT_DIR
+    return ROOT_DIR / "docs"
+
+
+@router.get("/guides")
+def list_guides(user: User = Depends(require("read"))):
+    d = _guides_dir()
+    return [{"id": k, "title": t, "available": (d / f).exists()} for k, (f, t) in GUIDES.items()]
+
+
+@router.get("/guides/{gid}")
+def get_guide(gid: str, user: User = Depends(require("read"))):
+    if gid not in GUIDES:
+        raise HTTPException(404, "Guide inconnu.")
+    f = _guides_dir() / GUIDES[gid][0]
+    if not f.exists():
+        raise HTTPException(404, "Ce guide n'est pas installé sur ce poste.")
+    return FileResponse(f, media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{GUIDES[gid][0]}"'})
+
 
 @router.get("/system/info")
 def info(user: User = Depends(get_current_user), db: Session = Depends(get_db)):

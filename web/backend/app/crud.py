@@ -47,6 +47,18 @@ def column_names(model) -> set[str]:
     return {c.key for c in inspect(model).column_attrs}
 
 
+def json_columns(model) -> set[str]:
+    """Colonnes JSON : leurs valeurs (dates, décimaux imbriqués…) sont converties avant enregistrement."""
+    from sqlalchemy import JSON
+
+    out = set()
+    for c in inspect(model).column_attrs:
+        t = c.columns[0].type
+        if isinstance(t, JSON) or isinstance(getattr(t, "impl", None), JSON) or "JSON" in type(t).__name__.upper():
+            out.add(c.key)
+    return out
+
+
 def record_change(db: Session, obj, op: str, user: User | None, changes: dict | None = None) -> None:
     """Journalise une modification. En mode bureau, marque l'objet « à synchroniser »."""
     entity = ENTITY_BY_MODEL.get(type(obj))
@@ -67,19 +79,44 @@ def record_change(db: Session, obj, op: str, user: User | None, changes: dict | 
     )
 
 
+ENTITY_MODULES = {
+    "projects": "projets", "lots": "projets", "incidents": "projets", "quotes": "devis", "quote_lines": "devis",
+    "dpgf_items": "devis", "cctp_requirements": "devis", "comparisons": "devis", "events": "agenda", "tasks": "planning",
+    "proposals": "planning", "documents": "documents", "document_versions": "documents", "clients": "annuaire",
+    "companies": "annuaire", "finance_entries": "finances", "budget_lines": "finances", "parcel_analyses": "terrain",
+    "geo_layers": "terrain", "reports": "rapports", "conversations": "assistant", "users": "equipe", "invitations": "equipe",
+    "comments": "equipe", "agencies": "parametres", "settings": "parametres", "notifications": "equipe",
+}
+
+
 def audit(db: Session, user: User | None, action: str, entity: str | None = None,
-          entity_id: str | None = None, summary: str | None = None, request: Request | None = None) -> None:
-    db.add(
-        AuditLog(
-            agency_id=user.agency_id if user else None,
-            user_id=user.id if user else None,
-            action=action,
-            entity=entity,
-            entity_id=entity_id,
-            summary=(summary or "")[:2000],
-            ip=request.client.host if request and request.client else None,
-        )
+          entity_id: str | None = None, summary: str | None = None, request: Request | None = None, *,
+          changes: dict | None = None, project_id: str | None = None, result: str = "succes", module: str | None = None) -> AuditLog:
+    """Journal d'activité : auteur, date, module, projet, nature, valeurs avant/après, résultat ; entrée chaînée."""
+    from .services.journal import redact, seal
+
+    e = AuditLog(
+        agency_id=user.agency_id if user else None,
+        user_id=user.id if user and not str(user.id).startswith("guest:") else None,
+        action=action,
+        entity=entity,
+        entity_id=entity_id,
+        summary=(summary or "")[:2000],
+        ip=request.client.host if request and request.client else None,
+        module=module or ENTITY_MODULES.get(entity or ""),
+        project_id=project_id,
+        changes=redact(jsonable(changes)) if changes else None,
+        result=result,
+        actor_label=getattr(user, "full_name", None) if user else None,
     )
+    db.add(e)
+    if e.agency_id:
+        seal(db, e)
+    return e
+
+
+def _project_of(obj) -> str | None:
+    return obj.id if isinstance(obj, Project) else getattr(obj, "project_id", None)
 
 
 def get_owned(db: Session, model, obj_id: str, user: User, allow_deleted: bool = False):
@@ -96,8 +133,10 @@ def create_obj(db: Session, model, data: dict, user: User, request: Request | No
     cols = column_names(model)
     # password_hash n'est jamais présent dans un schéma de formulaire (extra="forbid") : seul le code serveur le fournit
     data = {k: v for k, v in data.items() if k in cols and k not in {"dirty", "base_version", "agency_id", "version"}}
+    jcols = json_columns(model)
+    data = {k: (jsonable(v) if k in jcols else v) for k, v in data.items()}
     if "project_id" in data and data["project_id"]:
-        check_project_access(db, user, data["project_id"])
+        check_project_access(db, user, data["project_id"], write=True)
     obj = model(**data)
     obj.agency_id = user.agency_id
     obj.updated_by = user.id
@@ -105,7 +144,11 @@ def create_obj(db: Session, model, data: dict, user: User, request: Request | No
     db.add(obj)
     db.flush()
     record_change(db, obj, "create", user)
-    audit(db, user, "create", ENTITY_BY_MODEL.get(model), obj.id, _label(obj), request)
+    audit(db, user, "create", ENTITY_BY_MODEL.get(model), obj.id, _label(obj), request, project_id=_project_of(obj),
+          changes={k: {"avant": None, "apres": jsonable(v)} for k, v in data.items() if k not in INTERNAL_FIELDS and k != "id"} or None)
+    from .services.collab import on_change
+
+    on_change(db, obj, "create", user)
     return obj
 
 
@@ -119,33 +162,45 @@ def update_obj(db: Session, obj, data: dict, user: User, expected_version: int |
                 "current": to_dict(obj),
             },
         )
+    pid0 = obj.id if isinstance(obj, Project) else getattr(obj, "project_id", None)
+    if pid0:
+        check_project_access(db, user, pid0, write=True)
     cols = column_names(type(obj))
+    jcols = json_columns(type(obj))
     changes = {}
     for k, v in data.items():
+        if k in jcols:
+            v = jsonable(v)
         if k in cols and k not in INTERNAL_FIELDS | {"id", "agency_id", "version", "created_at"}:
             old = getattr(obj, k)
             if jsonable(old) != jsonable(v):
                 changes[k] = {"avant": jsonable(old), "apres": jsonable(v)}
                 setattr(obj, k, v)
     if "project_id" in changes and data.get("project_id"):
-        check_project_access(db, user, data["project_id"])
+        check_project_access(db, user, data["project_id"], write=True)
     if changes:
         obj.version += 1
         obj.updated_by = user.id
         obj.updated_at = utcnow()
         record_change(db, obj, "update", user, changes)
         audit(db, user, "update", ENTITY_BY_MODEL.get(type(obj)), obj.id,
-              f"{_label(obj)} : {', '.join(changes)}", request)
+              f"{_label(obj)} : {', '.join(changes)}", request, changes=changes, project_id=_project_of(obj))
+        from .services.collab import on_change
+
+        on_change(db, obj, "update", user, changes)
     return obj
 
 
 def delete_obj(db: Session, obj, user: User, request: Request | None = None):
+    pid0 = obj.id if isinstance(obj, Project) else getattr(obj, "project_id", None)
+    if pid0:
+        check_project_access(db, user, pid0, write=True)
     obj.deleted = True
     obj.version += 1
     obj.updated_by = user.id
     obj.updated_at = utcnow()
     record_change(db, obj, "delete", user)
-    audit(db, user, "delete", ENTITY_BY_MODEL.get(type(obj)), obj.id, _label(obj), request)
+    audit(db, user, "delete", ENTITY_BY_MODEL.get(type(obj)), obj.id, _label(obj), request, project_id=_project_of(obj))
 
 
 def _label(obj) -> str:

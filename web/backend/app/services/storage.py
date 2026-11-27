@@ -7,12 +7,23 @@ from pathlib import Path
 
 from ..config import get_settings
 
-SAFE = re.compile(r"[^A-Za-z0-9._ -]+")
+SAFE = re.compile(r'[\x00-\x1f\x7f<>:"/\\\\|?*]+')
+
+
+WINDOWS_RESERVED = re.compile(r"^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$", re.I)
 
 
 def safe_filename(name: str) -> str:
+    """Nom de fichier sûr qui CONSERVE les accents et la ponctuation usuelle (« Pièces écrites – Réunion n°2.pdf »).
+    Seuls sont remplacés les séparateurs de chemin, les caractères interdits par Windows et les caractères de contrôle.
+    (Le fichier est stocké sous son empreinte : le nom n'est qu'une métadonnée.)"""
+    import unicodedata
+
+    name = unicodedata.normalize("NFC", name or "")
     name = Path(name.replace("\\", "/")).name
     name = SAFE.sub("_", name).strip(" .") or "fichier"
+    if WINDOWS_RESERVED.match(name):
+        name = "_" + name
     return name[:180]
 
 

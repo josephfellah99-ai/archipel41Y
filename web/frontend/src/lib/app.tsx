@@ -3,7 +3,12 @@ import { api, getToken, setToken, type ApiError } from "./api";
 
 export type User = { id: string; email: string; full_name: string; role: string; role_label: string; color?: string; job_title?: string; version: number };
 export type Agency = { id: string; name: string; is_demo: boolean; siret?: string; address?: string; email?: string; phone?: string };
-export type Perms = { read: boolean; write: boolean; delete: boolean; validate: boolean; admin: boolean };
+export type Level = "none" | "read" | "write" | "full";
+export type Perms = { read: boolean; write: boolean; delete: boolean; validate: boolean; admin: boolean; modules: Record<string, Level> };
+export type GuestScope = { invitation: string; expires_at: string; modules: string[]; can_download: boolean; can_comment: boolean; projects: { id: string; code: string; name: string }[] };
+const RANK: Record<string, number> = { none: 0, read: 1, write: 2, full: 3 };
+/** Niveau d'accès à un module (affichage) — le serveur applique de toute façon le même contrôle. */
+export const canModule = (p: Perms, module: string, need: Level = "read") => RANK[p.modules?.[module] ?? (p.admin ? "full" : p.write ? "write" : p.read ? "read" : "none")] >= RANK[need];
 
 type Toast = { id: number; kind: "ok" | "error" | "info"; text: string };
 
@@ -11,6 +16,7 @@ type Ctx = {
   user: User | null;
   agency: Agency | null;
   perms: Perms;
+  guest: GuestScope | null;
   mode: string;
   loading: boolean;
   login: (token: string) => Promise<void>;
@@ -31,7 +37,7 @@ type Ctx = {
 const AppCtx = createContext<Ctx>(null as any);
 export const useApp = () => useContext(AppCtx);
 
-const NO_PERMS: Perms = { read: false, write: false, delete: false, validate: false, admin: false };
+const NO_PERMS: Perms = { read: false, write: false, delete: false, validate: false, admin: false, modules: {} };
 
 function ls(key: string, fallback: string | null = null) {
   try {
@@ -53,6 +59,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [agency, setAgency] = useState<Agency | null>(null);
   const [perms, setPerms] = useState<Perms>(NO_PERMS);
+  const [guest, setGuest] = useState<GuestScope | null>(null);
   const [mode, setMode] = useState("server");
   const [loading, setLoading] = useState(true);
   const [projectId, setProjectIdState] = useState<string | null>(ls("a41.project"));
@@ -96,8 +103,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setUser(me.user);
       setAgency(me.agency);
       setPerms(me.permissions);
+      setGuest(me.guest || null);
       setMode(me.mode);
-      await reloadProjects();
+      if (!me.guest) await reloadProjects();
     } catch (e: any) {
       if (e?.status === 401) setUser(null);
     } finally {
@@ -122,6 +130,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [refreshMe]);
 
   const logout = useCallback(() => {
+    api.call("POST", "/api/auth/logout").catch(() => {});
+    setGuest(null);
     setToken(null);
     setUser(null);
     setPerms(NO_PERMS);
@@ -135,10 +145,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(
     () => ({
-      user, agency, perms, mode, loading, login, logout, refreshMe, projectId, setProjectId, projects, reloadProjects,
+      user, agency, perms, guest, mode, loading, login, logout, refreshMe, projectId, setProjectId, projects, reloadProjects,
       theme, toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")), toast, toastError, assistantOpen, setAssistantOpen,
     }),
-    [user, agency, perms, mode, loading, login, logout, refreshMe, projectId, setProjectId, projects, reloadProjects, theme, toast, toastError, assistantOpen],
+    [user, agency, perms, guest, mode, loading, login, logout, refreshMe, projectId, setProjectId, projects, reloadProjects, theme, toast, toastError, assistantOpen],
   );
 
   return (
@@ -185,4 +195,42 @@ export function useApi<T = any>(path: string | null, deps: any[] = []) {
     load();
   }, [load]);
   return { data, error, loading, reload: load, setData, cachedAt };
+}
+
+/**
+ * État de formulaire alimenté par une donnée serveur, PROTÉGÉ contre les rechargements :
+ * tant que l'utilisateur a des modifications non enregistrées, une nouvelle version reçue du serveur
+ * (rechargement en arrière-plan, synchronisation…) ne remplace jamais sa saisie ; `stale` signale
+ * qu'une version plus récente existe. Après un enregistrement réussi, appeler `markSaved()`.
+ */
+export function useEditable<S, T = S>(source: S | null | undefined, map?: (s: S) => T) {
+  const conv = (s: S) => (map ? map(s) : (s as unknown as T));
+  const [value, setRaw] = useState<T | null>(source ? conv(source) : null);
+  const base = useRef<string>(source ? JSON.stringify(conv(source)) : "");
+  const dirty = useRef(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [stale, setStale] = useState(false);
+  useEffect(() => {
+    if (!source) return;
+    const next = conv(source);
+    const key = JSON.stringify(next);
+    if (key === base.current) return; // rechargement sans changement réel : rien à faire
+    base.current = key;
+    if (dirty.current) { setStale(true); return; }
+    setRaw(next);
+    setStale(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source]);
+  const setValue = useCallback((v: T | ((prev: T) => T)) => {
+    dirty.current = true;
+    setIsDirty(true);
+    setRaw((prev) => (typeof v === "function" ? (v as (p: T) => T)(prev as T) : v));
+  }, []);
+  const markSaved = useCallback(() => { dirty.current = false; setIsDirty(false); setStale(false); }, []);
+  const discard = useCallback(() => {
+    dirty.current = false; setIsDirty(false); setStale(false);
+    if (source) { const next = conv(source); base.current = JSON.stringify(next); setRaw(next); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source]);
+  return { value, setValue, dirty: isDirty, stale, markSaved, discard };
 }

@@ -123,16 +123,31 @@ def build() -> Doc:
     d.part("Sécurité")
     d.table(["Exigence", "Mise en œuvre"], [
         ["Authentification", "Mots de passe PBKDF2-SHA256 (390 000 itérations, sel aléatoire), politique (10 caractères, 3 types), blocage 5 min après 5 échecs, JWT signé lié à l'agence"],
-        ["Rôles", "admin / chef de projet / collaborateur / lecture seule ; matrice read, write, delete, validate, admin"],
+        ["Rôles et autorisations", "administrateur / gestionnaire / collaborateur / lecteur ; autorisations fines par module (aucun, lecture, modification, gestion) et par projet, vérifiées côté serveur à chaque requête (règles URL → module) ; invités par code (jeton distinct, accepté uniquement par /api/guest/*, codes HMAC-SHA256)"],
         ["Isolation", "Filtrage systématique par agence ; projets confidentiels limités à l'équipe"],
-        ["Documents", "Liste blanche d'extensions, contrôle de signature PDF, refus des exécutables, noms neutralisés, stockage hors racine web, téléchargement avec CSP sandbox"],
+        ["Documents", "Liste blanche d'extensions, contrôle de signature PDF, refus des exécutables, noms d'origine conservés (accents compris) hors caractères interdits par Windows, stockage par empreinte hors racine web, téléchargement avec CSP sandbox ; aperçus Word et DXF construits à partir de texte échappé ; annotations stockées à part (original jamais modifié) ; ouverture dans le logiciel métier : copie temporaire, formats exécutables refusés"],
         ["Communications", "HTTPS par le proxy Caddy (Let's Encrypt) ; poste : boucle locale 127.0.0.1 uniquement"],
         ["Secrets", "Aucune clé dans le code ; clés API chiffrées au repos (Fernet), jamais renvoyées en clair ; SECRET_KEY générée"],
         ["IA", "Envoi externe désactivable ; contenus confidentiels exclus sauf autorisation explicite ; modèles locaux non considérés comme externes"],
         ["En-têtes", "nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP, HSTS en HTTPS, Cache-Control no-store sur l'API"],
-        ["Traçabilité", "Journal d'audit, historique des modifications champ par champ"],
+        ["Traçabilité", "Journal d'audit chaîné (SHA-256) et protégé par déclencheurs, contrôle d'intégrité, historique champ par champ, connexions avec appareil, erreurs référencées E-XXXXXX ; secrets masqués dans les journaux"],
         ["Sauvegardes", "Archives avec manifeste et SHA-256, sauvegarde de sécurité avant restauration"],
     ], [20, 80])
+
+    d.part("Évolutions de la version 1.2")
+    d.table(["Lot", "Contenu", "Éléments techniques"], [
+        ["1", "Fiabilité des formulaires", "Validateur FrenchNumbers (serveur), NumberInput, useEditable (modifications protégées des rechargements), AsyncButton"],
+        ["2", "Connexion, rôles, autorisations, invités", "security.py (PATH_RULES, module_level, accès projet), routers auth et guest, table invitations / guest_sessions"],
+        ["3", "Collaboration", "Commentaires, notifications, équipe, affectations (router collab)"],
+        ["4", "Historique et diagnostic", "services/journal.py (scellement, vérification), déclencheurs de protection, error_logs, connection_logs (router history)"],
+        ["5", "Agendas externes", "services/calendar_sync.py : Microsoft Graph (delta) et Google (syncToken), OAuth 2 + PKCE, jetons chiffrés, règles de conflit, flux ICS"],
+        ["6", "Terrain et cartographie", "services/geocrs.py (Lambert-93, CC42-50, Lambert II étendu, UTM), services/geoformats.py (10 formats), router geo, Leaflet"],
+        ["7", "Bibliothèque documentaire", "services/referentiel.py + data/arborescence_a41.json (141 dossiers), services/viewers.py (tableur, Word, DXF→SVG, IFC), "
+         "table document_annotations, colonne documents.folder, routes /tree, /{id}/view, /{id}/advice, /{id}/annotations, /{id}/similar"],
+        ["8", "Aide et guides", "lib/help.ts (aide par écran), routes /api/guides (liste fermée), guides PDF mis à jour"],
+    ], [6, 26, 68])
+    d.p("Migration <b>0004</b> (non publiée avant la 1.2) : colonnes d'agenda externe, <code>documents.folder</code>, table <code>document_annotations</code>. "
+        "Vérifiée : montée, comparaison automatique modèle / base sans écart, descente vers 0003 puis remontée.")
 
     d.part("Tests et résultats")
     rows = []
@@ -144,13 +159,18 @@ def build() -> Doc:
     e2e = ROOT / "tests" / "e2e" / "e2e-results.json"
     if e2e.exists():
         j = json.loads(e2e.read_text())
+    if e2e.exists() and not (REPORTS / "e2e_suites.json").exists():
         ok = sum(1 for x in j["results"] if x["ok"])
         rows.append(["Bout en bout (Playwright/Chromium) : parcours complet, hors connexion, responsive", "Serveur SQLite", f"{ok} / {len(j['results'])}", str(len(j["results"]) - ok), j["date"][:16].replace("T", " ")])
+    suites = REPORTS / "e2e_suites.json"
+    if suites.exists():
+        for x in json.loads(suites.read_text(encoding="utf-8")):
+            rows.append([f"Navigateur – {x['label']}", "Serveur SQLite", f"{x['ok']} / {x['total']}", str(x["total"] - x["ok"]), x["date"]])
     d.table(["Campagne", "Base", "Réussis / total", "Échecs", "Exécution (UTC)"], rows, [40, 20, 14, 8, 18])
     d.p("Détail des tests unitaires : nombres français, arrondis, TVA multi-taux, anomalies, extraction des cinq formats de devis de démonstration (dont OCR), "
         "ZIP malveillant, DPGF, CCTP, PLU (dont thème absent signalé), statuts du comparateur (non renseigné ≠ non inclus, non comparable, écart fort), RAG.")
     d.p("Tests de sécurité : authentification exigée sur toutes les routes, jetons falsifiés/expirés/d'une autre agence, compte désactivé, injections SQL, "
-        "limitation des tentatives, fichiers exécutables et faux PDF, traversée de chemins, en-têtes, SVG piégé, hachage, droits du rôle lecture seule, absence de secrets dans le code, journal d'audit.")
+        "limitation des tentatives, fichiers exécutables et faux PDF, traversée de chemins, en-têtes, SVG piégé, hachage, droits du rôle lecteur et des invités, autorisations par module et par projet, absence de secrets dans le code, journal d'audit.")
     if e2e.exists():
         d.table(["Vérification de bout en bout", "Résultat"], [[x["name"], '<span class="badge ok">OK</span>' if x["ok"] else f'<span class="badge ko">ÉCHEC</span> {x["detail"]}'] for x in j["results"]], [80, 20])
     d.sec("Ce qui n'a pas pu être testé dans l'environnement de construction")
@@ -181,8 +201,9 @@ def build() -> Doc:
 
     d.part("Limites connues et évolutions")
     d.ul("Dépendances de planning de type fin → début uniquement ; pas de calcul de marges libres et totales.",
-         "Agenda non synchronisé avec Outlook / Google Agenda ; notifications affichées lorsque l'application est ouverte.",
-         "Pas de visualisation des fichiers CAO/BIM (DWG, IFC…) ; ils sont stockés et versionnés.",
+         "Synchronisation Outlook / Google : testée sur réponses simulées ; nécessite une application déclarée chez Microsoft ou Google.",
+         "Aperçu DXF 2D simplifié (sans blocs, cotes, hachures ; DXF binaire non lu) ; IFC résumé sans vue 3D ; DWG / RVT / PLN stockés, versionnés et ouverts dans le logiciel métier.",
+         "Annotations limitées aux PDF et images ; modèle d'arborescence non modifiable depuis l'interface (dossiers propres au projet possibles).",
          "Extraction des devis aux mises en page très atypiques : correction manuelle ou extraction par IA.",
          "Pas de mise à jour automatique de l'application Windows (installation manuelle du nouvel installateur).",
          "Le contrôle CCTP porte sur la mention des exigences, pas sur la conformité technique.")

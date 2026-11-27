@@ -18,8 +18,8 @@ def build() -> Doc:
     d.sec("Les fichiers livrés")
     d.p("Le dossier de livraison <b>ARCHIPEL41</b> contient :")
     d.table(["Fichier ou dossier", "Rôle", "Pour qui ?"], [
-        ["<code>desktop/build/dist/Archipel41-Setup-1.0.0-x64.exe</code>", "Installateur Windows (≈ 150 Mo). C'est le fichier à utiliser dans la grande majorité des cas.", "Chaque poste de l'agence"],
-        ["<code>desktop/build/dist/Archipel41-Portable-1.0.0-x64.exe</code>", "Version portable : se lance sans installation (clé USB, poste sans droits d'administration).", "Usage ponctuel"],
+        ["<code>desktop/build/dist/Archipel41-Setup-1.2.0-x64.exe</code>", "Installateur Windows (≈ 150 Mo). C'est le fichier à utiliser dans la grande majorité des cas.", "Chaque poste de l'agence"],
+        ["<code>desktop/build/dist/Archipel41-Portable-1.2.0-x64.exe</code>", "Version portable : se lance sans installation (clé USB, poste sans droits d'administration).", "Usage ponctuel"],
         ["<code>desktop/build/dist/SHA256SUMS.txt</code>", "Empreintes permettant de vérifier que les fichiers n'ont pas été altérés.", "Responsable informatique"],
         ["<code>docs/GUIDE_INSTALLATION_ARCHIPEL41.pdf</code>", "Le présent guide.", "Tous"],
         ["<code>docs/GUIDE_UTILISATION_ARCHIPEL41.pdf</code>", "Manuel d'utilisation, module par module.", "Tous"],
@@ -65,12 +65,12 @@ def build() -> Doc:
 
     d.part("Télécharger et installer sur Windows")
     d.sec("Télécharger l'installateur")
-    d.steps("Récupérez le fichier <b>Archipel41-Setup-1.0.0-x64.exe</b> (dossier <code>desktop/build/dist</code> de la livraison, ou lien transmis par votre prestataire).",
+    d.steps("Récupérez le fichier <b>Archipel41-Setup-1.2.0-x64.exe</b> (dossier <code>desktop/build/dist</code> de la livraison, ou lien transmis par votre prestataire).",
             "Enregistrez-le dans votre dossier <b>Téléchargements</b>.",
             "Facultatif mais recommandé : vérifiez son empreinte. Ouvrez PowerShell dans le dossier Téléchargements et tapez "
-            "<code>Get-FileHash .\\Archipel41-Setup-1.0.0-x64.exe</code> ; le résultat doit être identique à la ligne correspondante de <code>SHA256SUMS.txt</code>.")
+            "<code>Get-FileHash .\\Archipel41-Setup-1.2.0-x64.exe</code> ; le résultat doit être identique à la ligne correspondante de <code>SHA256SUMS.txt</code>.")
     d.sec("Lancer l'installation")
-    d.steps("Double-cliquez sur <b>Archipel41-Setup-1.0.0-x64.exe</b>.",
+    d.steps("Double-cliquez sur <b>Archipel41-Setup-1.2.0-x64.exe</b>.",
             "Si Windows affiche « <b>Windows a protégé votre ordinateur</b> » (SmartScreen), cliquez sur <b>Informations complémentaires</b> puis sur <b>Exécuter quand même</b>. "
             "Ce message apparaît car l'installateur de cette version n'est pas signé numériquement (voir l'encadré ci-dessous).",
             "Lisez les conditions d'utilisation puis cliquez sur <b>J'accepte</b>.",
@@ -87,7 +87,7 @@ def build() -> Doc:
          "une entrée <b>Archipel41</b> dans le menu Démarrer (tapez « Archipel » dans la recherche) ;",
          "une entrée <b>Archipel41</b> dans <b>Paramètres › Applications</b>, pour la désinstallation.")
     d.sec("Version portable")
-    d.p("La version portable <b>Archipel41-Portable-1.0.0-x64.exe</b> se lance par un double-clic, sans installation. Son démarrage est un peu plus long "
+    d.p("La version portable <b>Archipel41-Portable-1.2.0-x64.exe</b> se lance par un double-clic, sans installation. Son démarrage est un peu plus long "
         "(décompression à chaque lancement). Par défaut, ses données sont rangées dans votre profil Windows comme la version installée. "
         "Pour garder les données à côté de l'exécutable (sur une clé USB par exemple), créez un dossier nommé <code>Archipel41-data</code> dans le même dossier que l'exécutable.")
 
@@ -113,7 +113,7 @@ def build() -> Doc:
     d.p("Le bouton <b>Explorer la démonstration</b> (écran de bienvenue) ou l'appel <b>Créer l'espace de démonstration</b> créent une "
         "<b>agence fictive distincte</b> (« [DÉMO] Atelier Démo Architectes ») avec un projet complet : devis réels analysés, planning, rendez-vous, finances. "
         "Ses comptes sont <code>demo@archipel41.demo</code> (administrateur), <code>claire.martin@archipel41.demo</code> (cheffe de projet), "
-        "<code>hugo.bernard@archipel41.demo</code> (collaborateur) et <code>lea.petit@archipel41.demo</code> (lecture seule), avec le mot de passe que vous choisissez.")
+        "<code>hugo.bernard@archipel41.demo</code> (collaborateur) et <code>lea.petit@archipel41.demo</code> (lecteur), avec le mot de passe que vous choisissez.")
     d.note("Les données de démonstration ne se mélangent jamais avec les vôtres : elles appartiennent à une autre agence, un bandeau orange "
            "« ESPACE DE DÉMONSTRATION » est affiché en permanence et chaque rapport porte la mention « DONNÉES DE DÉMONSTRATION ». "
            "La météo et l'urbanisme y fonctionnent en mode simulé, clairement signalé.", "Séparation des données")

@@ -507,6 +507,33 @@ def comparison_blocks(db: Session, cmp: Comparison) -> tuple[list[dict], dict]:
         blocks.append({"type": "h2", "text": "Contrôle des exigences du CCTP"})
         blocks.append({"type": "table", "sheet": "CCTP", "columns": ["Article", "Intitulé"] + [s["company"][:25] for s in summaries],
                        "rows": [[c["article"], c["title"]] + [c["quotes"][q]["message"] for q in qids] for c in r["cctp"]]})
+    opt = r.get("optimization")
+    if opt:
+        blocks.append({"type": "h2", "text": "Coût réel probable et optimisation à qualité constante"})
+        cols = ["Entreprise", "Total HT annoncé", "Coûts cachés HT", "Coût réel probable HT", "Économies négociables HT",
+                "Objectif HT", "Écarts de qualité"]
+        raw = [[o["company"], o["total_ht"], o["hidden_costs_ht"], o["probable_cost_ht"], o["negotiable_ht"], o["target_cost_ht"],
+                o["quality_issues"]] for o in opt["offers"]]
+        blocks.append({"type": "table", "sheet": "Optimisation", "columns": cols, "raw_rows": raw,
+                       "number_formats": [None] + ["#,##0.00 €"] * 5,
+                       "rows": [[x[0]] + [exports.eur(v) for v in x[1:6]] + [str(x[6])] for x in raw]})
+        lev = [[o["company"], lv["designation"], lv["amount_ht"], lv["target_ht"], lv["saving_ht"], lv["text"]]
+               for o in opt["offers"] for lv in o["levers"]]
+        if lev:
+            blocks.append({"type": "table", "sheet": "Leviers de négociation",
+                           "columns": ["Entreprise", "Poste", "Montant HT", "Cible HT", "Économie HT", "Motif"], "raw_rows": lev,
+                           "number_formats": [None, None, "#,##0.00 €", "#,##0.00 €", "#,##0.00 €"],
+                           "rows": [[x[0], x[1], exports.eur(x[2]), exports.eur(x[3]), exports.eur(x[4]), x[5]] for x in lev]})
+        sev = {"haute": "Haute", "moyenne": "Moyenne", "info": "Info"}
+        cat = {"qualite": "Qualité", "quantite": "Quantité", "prix": "Prix", "perimetre": "Périmètre",
+               "conditions": "Conditions", "calcul": "Calcul"}
+        rem = [[sev[x["severity"]], cat.get(x["category"], x["category"]), x["company"] or "Toutes", x["designation"] or "",
+                x["message"], x["action"]] for x in opt["remarks"]]
+        if rem:
+            blocks.append({"type": "h2", "text": "Remarques techniques"})
+            blocks.append({"type": "table", "sheet": "Remarques techniques",
+                           "columns": ["Gravité", "Thème", "Entreprise", "Poste", "Constat", "Action recommandée"],
+                           "rows": rem, "raw_rows": rem})
     blocks += [{"type": "h2", "text": "Conclusion"}, {"type": "markdown", "text": cmp.conclusion or ""}]
     agency = db.get(Agency, cmp.agency_id)
     project = db.get(Project, cmp.project_id)

@@ -16,11 +16,17 @@ import Finances from "./pages/Finances";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/Settings";
 import SearchPage from "./pages/Search";
+import TeamPage from "./pages/Team";
+import GuestApp from "./pages/Guest";
+import Chantiers from "./pages/Chantiers";
+import HistoryPage from "./pages/History";
+import TerrainPage from "./pages/Terrain";
 
 export default function App() {
-  const { user, loading } = useApp();
+  const { user, loading, guest } = useApp();
   if (loading) return <div className="h-full flex items-center justify-center"><Spinner label="Démarrage d'Archipel41…" /></div>;
   if (!user) return <AuthGate />;
+  if (guest) return <GuestApp />;
   return (
     <Layout>
       <Routes>
@@ -33,6 +39,10 @@ export default function App() {
         <Route path="/agenda" element={<Agenda />} />
         <Route path="/planning" element={<Planning />} />
         <Route path="/urbanisme" element={<Urbanisme />} />
+        <Route path="/terrain" element={<TerrainPage />} />
+        <Route path="/chantiers" element={<Chantiers />} />
+        <Route path="/equipe" element={<TeamPage />} />
+        <Route path="/historique" element={<HistoryPage />} />
         <Route path="/assistant" element={<AssistantPage />} />
         <Route path="/documents" element={<Documents />} />
         <Route path="/annuaire" element={<Directory />} />

@@ -70,3 +70,14 @@ body { @apply bg-bg text-ink antialiased; font-feature-settings: "cv11", "ss01";
 
 /* Les colonnes de grille peuvent rétrécir : les tableaux larges défilent dans leur propre conteneur */
 .grid > * { min-width: 0; }
+
+/* Aperçu des documents Word (HTML construit côté serveur à partir de texte échappé) */
+.doc-html { font-size: 0.875rem; line-height: 1.55; color: #111; }
+.doc-html h1 { font-size: 1.35rem; font-weight: 700; margin: 0 0 0.75rem; }
+.doc-html h2 { font-size: 1.1rem; font-weight: 700; margin: 1.1rem 0 0.4rem; }
+.doc-html h3, .doc-html h4, .doc-html h5 { font-size: 0.95rem; font-weight: 600; margin: 0.9rem 0 0.3rem; }
+.doc-html p { margin: 0 0 0.45rem; }
+.doc-html p.li { padding-left: 1rem; }
+.doc-html .hdr { font-size: 0.72rem; color: #666; border-bottom: 1px solid #ddd; padding-bottom: 0.4rem; margin-bottom: 0.9rem; }
+.doc-html table { border-collapse: collapse; margin: 0.6rem 0 0.9rem; width: 100%; font-size: 0.8rem; }
+.doc-html td { border: 1px solid #d4d4d4; padding: 0.25rem 0.45rem; vertical-align: top; }

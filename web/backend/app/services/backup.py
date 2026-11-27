@@ -85,7 +85,10 @@ def read_manifest(data: bytes) -> dict:
         raise ValueError("Archive de sauvegarde invalide (manifest.json absent ou illisible).")
     if m.get("format") != FORMAT:
         raise ValueError("Format de sauvegarde non reconnu.")
+    names = set(zf.namelist())
     for name, h in (m.get("sha256") or {}).items():
+        if f"data/{name}.json" not in names:
+            raise ValueError(f"Archive incomplète : la table « {name} » annoncée dans le manifeste est absente.")
         if hashlib.sha256(zf.read(f"data/{name}.json")).hexdigest() != h:
             raise ValueError(f"Archive corrompue : empreinte invalide pour « {name} ».")
     return m
@@ -97,15 +100,23 @@ def restore_backup(db: Session, agency_id: str, data: bytes) -> dict:
     zf = zipfile.ZipFile(io.BytesIO(data))
     src_agency = m["agency_id"]
     models = {**SYNC_MODELS, **EXTRA}
-    # suppression (ordre inverse des dépendances)
+    # suppression (ordre inverse des dépendances) ; PostgreSQL : autorise la purge du journal protégé, pour cette opération seulement
+    if db.bind.dialect.name == "postgresql":
+        from sqlalchemy import text
+
+        db.execute(text("SET LOCAL archipel.allow_log_purge = 'on'"))
     db.query(DocumentChunk).filter(DocumentChunk.agency_id == agency_id).delete()
     for name in reversed(list(models)):
         db.query(models[name]).filter(models[name].agency_id == agency_id).delete(synchronize_session=False)
     db.flush()
     restored = {}
+    names = set(zf.namelist())
     for name, model in models.items():
-        rows = json.loads(zf.read(f"data/{name}.json"))
+        # une archive d'une version antérieure ne contient pas les tables apparues depuis : restaurées vides
+        rows = json.loads(zf.read(f"data/{name}.json")) if f"data/{name}.json" in names else []
         for row in rows:
+            if name == "audit_logs" and row.get("agency_id") != agency_id:
+                row["hash"] = row["prev_hash"] = None  # entrées d'une autre agence : conservées, hors chaînage
             row["agency_id"] = agency_id  # restauration dans l'agence courante
             if name == "change_log":
                 row.pop("seq", None)

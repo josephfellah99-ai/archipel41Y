@@ -17,7 +17,7 @@ function Shell({ children, title, subtitle }: { children: React.ReactNode; title
           <p className="text-3xl font-light leading-snug max-w-md">L'assistant numérique des agences d'architecture.</p>
           <p className="mt-4 text-white/70 max-w-md text-sm dark:text-bg/70">Projets, chantiers, devis, urbanisme, planning, finances et documents – réunis, analysés et sécurisés.</p>
         </div>
-        <p className="text-xs text-white/50 dark:text-bg/60">Version 1.0 · Données hébergées par votre agence</p>
+        <p className="text-xs text-white/50 dark:text-bg/60">Version 1.1 · Données hébergées par votre agence</p>
       </div>
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-md">
@@ -31,34 +31,74 @@ function Shell({ children, title, subtitle }: { children: React.ReactNode; title
   );
 }
 
+type Mode = "admin" | "collaborateur" | "invite";
+
 function Login({ hasDemo, onSetup }: { hasDemo: boolean; onSetup?: () => void }) {
   const { login } = useApp();
+  const [mode, setMode] = useState<Mode>(() => (new URLSearchParams(window.location.search).get("invitation") ? "invite" : "collaborateur"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState(() => new URLSearchParams(window.location.search).get("invitation") || "");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     setErr(null);
     try {
-      const r = await api.call("POST", "/api/auth/login", { email, password });
-      await login(r.token);
+      if (mode === "invite") {
+        const r = await api.call("POST", "/api/guest/redeem", { code });
+        await login(r.token);
+      } else {
+        const r = await api.call("POST", "/api/auth/login", { email, password, mode });
+        await login(r.token);
+      }
     } catch (e: any) {
       setErr(e.message);
     } finally {
       setBusy(false);
     }
   };
+  // Format du code : XXXX-XXXX-XXXX (saisie tolérante : minuscules, espaces, sans tirets)
+  const fmtCode = (v: string) => {
+    const raw = v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+    return raw.match(/.{1,4}/g)?.join("-") || "";
+  };
+  const TABS: { id: Mode; label: string; hint: string }[] = [
+    { id: "admin", label: "Administrateur", hint: "Gestion de l'agence, des comptes, des accès et des paramètres." },
+    { id: "collaborateur", label: "Collaborateur", hint: "Votre espace de travail : projets, documents, agenda et tâches." },
+    { id: "invite", label: "Invité", hint: "Vous avez reçu un code d'invitation de l'agence." },
+  ];
   return (
-    <Shell title="Connexion" subtitle="Identifiez-vous avec votre compte d'agence.">
+    <Shell title="Connexion" subtitle={TABS.find((t) => t.id === mode)!.hint}>
+      <div className="grid grid-cols-3 border border-line rounded-lg p-1 mb-5 bg-sunken/60" role="tablist" aria-label="Mode de connexion">
+        {TABS.map((t) => (
+          <button key={t.id} type="button" role="tab" aria-selected={mode === t.id} onClick={() => { setMode(t.id); setErr(null); }}
+            className={`text-sm py-2 rounded-md transition ${mode === t.id ? "bg-surface shadow-sm font-medium text-forest" : "text-muted hover:text-ink"}`}>
+            {t.label}
+          </button>))}
+      </div>
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Adresse e-mail"><input className="input" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
-        <Field label="Mot de passe"><input className="input" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
-        <ErrorBox error={err} />
-        <button className="btn-primary w-full" disabled={busy}>{busy ? "Connexion…" : "Se connecter"}</button>
-        {onSetup && <button type="button" className="btn-secondary w-full" onClick={onSetup}>Créer mon agence réelle</button>}
-        {hasDemo && <p className="text-xs text-muted">Espace de démonstration disponible : compte <b>demo@archipel41.demo</b> avec le mot de passe choisi lors de sa création.</p>}
+        {mode === "invite" ? (
+          <>
+            <Field label="Code d'invitation" hint="12 caractères, au format XXXX-XXXX-XXXX, transmis par l'agence.">
+              <input className="input text-center tracking-[0.25em] font-mono text-lg uppercase" autoComplete="one-time-code" required value={code}
+                onChange={(e) => setCode(fmtCode(e.target.value))} placeholder="XXXX-XXXX-XXXX" aria-label="Code d'invitation" /></Field>
+            <ErrorBox error={err} />
+            <button className="btn-primary w-full" disabled={busy || code.replace(/-/g, "").length !== 12}>{busy ? "Vérification…" : "Accéder en tant qu'invité"}</button>
+            <p className="text-xs text-muted">Un accès invité est limité dans le temps et ne donne accès qu'aux éléments que l'agence a choisi de partager.</p>
+          </>
+        ) : (
+          <>
+            <Field label="Adresse e-mail"><input className="input" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+            <Field label="Mot de passe"><input className="input" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+            <ErrorBox error={err} />
+            <button className="btn-primary w-full" disabled={busy}>{busy ? "Connexion…" : mode === "admin" ? "Se connecter (administration)" : "Se connecter"}</button>
+            {onSetup && <button type="button" className="btn-secondary w-full" onClick={onSetup}>Créer mon agence réelle</button>}
+            {hasDemo && <p className="text-xs text-muted">Espace de démonstration disponible : compte <b>demo@archipel41.demo</b> avec le mot de passe choisi lors de sa création.</p>}
+          </>
+        )}
       </form>
     </Shell>
   );

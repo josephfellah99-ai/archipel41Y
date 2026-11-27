@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, blobUrl, download } from "../lib/api";
 import { useApi, useApp } from "../lib/app";
-import { CMP_STATUS, dateFr, eur, LINE_STATUS, num, parseNum, QUOTE_STATUS } from "../lib/format";
+import { CMP_STATUS, dateFr, eur, LINE_STATUS, num, parseNum, QUOTE_STATUS, toNum } from "../lib/format";
 import { Card, Empty, ErrorBox, Field, Markdown, Modal, Notice, PageHeader, Select, Spinner, Tabs } from "../components/ui";
 import { PdfPages } from "./Documents";
 
@@ -236,8 +236,16 @@ export function QuoteReview() {
   const [showDoc, setShowDoc] = useState(true);
   const [busy, setBusy] = useState(false);
   const dpgf = useApi<any[]>(q ? `/api/dpgf-items?project_id=${q.project_id}${q.lot_id ? `&lot_id=${q.lot_id}` : ""}` : null);
+  const dirtyRef = useRef(false);
+  useEffect(() => { dirtyRef.current = dirty; }, [dirty]);
+  const [newer, setNewer] = useState(false);
+  const loadedVersion = useRef<number | null>(null);
   useEffect(() => {
     if (!q) return;
+    // une saisie non enregistrée n'est jamais écrasée par un rechargement
+    if (dirtyRef.current && loadedVersion.current !== null && q.version !== loadedVersion.current) { setNewer(true); return; }
+    loadedVersion.current = q.version;
+    setNewer(false);
     setLines(q.lines.map((l: any) => ({ ...l })));
     setHead({ company_id: q.company_id || "", reference: q.reference || "", quote_date: q.quote_date || "", delay_text: q.delay_text || "", delay_days: q.delay_days ?? "",
       validity_days: q.validity_days ?? "", payment_terms: q.payment_terms || "", conditions: q.conditions || [], exclusions: q.exclusions || [], reserves: q.reserves || [],
@@ -267,9 +275,14 @@ export function QuoteReview() {
     setBusy(true);
     try {
       const h = { ...head, company_id: head.company_id || null, quote_date: head.quote_date || null };
-      for (const k of ["delay_days", "validity_days", "declared_ht", "declared_tva", "declared_ttc"]) h[k] = h[k] === "" ? null : parseNum(String(h[k]));
+      const lab: Record<string, string> = { delay_days: "Délai", validity_days: "Validité", declared_ht: "Total HT déclaré", declared_tva: "TVA déclarée", declared_ttc: "Total TTC déclaré" };
+      for (const k of Object.keys(lab)) h[k] = toNum(h[k], lab[k]);
+      const clean = lines.map((l, i) => ({ ...l, quantity: toNum(l.quantity, `Ligne ${i + 1} – quantité`), unit_price: toNum(l.unit_price, `Ligne ${i + 1} – prix unitaire`),
+        total_ht: toNum(l.total_ht, `Ligne ${i + 1} – montant`), vat_rate: toNum(l.vat_rate, `Ligne ${i + 1} – TVA`) }));
       let r = await api.call("PUT", `/api/quotes/${id}`, { ...h, version: q.version });
-      r = await api.call("PUT", `/api/quotes/${id}/lines`, { lines });
+      r = await api.call("PUT", `/api/quotes/${id}/lines`, { lines: clean });
+      dirtyRef.current = false;
+      setDirty(false);
       setData(r);
       toast("Corrections enregistrées – totaux recalculés par le moteur déterministe.");
     } catch (e: any) {
@@ -295,6 +308,7 @@ export function QuoteReview() {
           {canEdit && <button className="btn-primary" disabled={busy || !dirty} onClick={saveAll}><Save size={15} /> Enregistrer les corrections</button>}
           {perms.validate && <button className="btn-primary" disabled={busy || dirty} title={dirty ? "Enregistrez d'abord vos corrections" : ""} onClick={() => action(`/api/quotes/${id}/validate`, "Devis validé.")}><CheckCircle2 size={15} /> Valider</button>}
         </>} />
+      {newer && <div className="mb-4"><Notice tone="warn">Ce devis a été modifié entre-temps. Votre saisie est conservée ; enregistrez-la ou <button className="underline" onClick={() => { dirtyRef.current = false; setDirty(false); loadedVersion.current = null; reload(); }}>chargez la version la plus récente</button>.</Notice></div>}
       {(q.extraction?.warnings || []).length > 0 && <div className="mb-4"><Notice tone="warn"><ul className="list-disc pl-4">{q.extraction.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}</ul></Notice></div>}
       <div className={`grid gap-6 ${showDoc && preview ? "xl:grid-cols-[1fr_minmax(380px,40%)]" : ""}`}>
         <div className="space-y-6 min-w-0">
@@ -346,7 +360,8 @@ export function QuoteReview() {
                     <td><input className="input py-1 w-12" disabled={!canEdit} value={l.unit || ""} onChange={(e) => upd(i, "unit", e.target.value)} /></td>
                     <td><input className="input py-1 w-20 text-right" disabled={!canEdit} value={l.unit_price ?? ""} onChange={(e) => upd(i, "unit_price", e.target.value)} /></td>
                     <td><input className={`input py-1 w-24 text-right ${mismatch ? "border-danger text-danger" : ""}`} disabled={!canEdit} value={l.total_ht ?? ""} onChange={(e) => upd(i, "total_ht", e.target.value)} />
-                      {mismatch && <div className="text-[10px] text-danger">calcul : {num(calc)}</div>}</td>
+                      {mismatch && <div className="text-[10px] text-danger">calcul : {num(calc)}</div>}
+                      {!mismatch && calc !== null && t !== null && <div className="text-[10px] text-ok" title="Quantité × prix unitaire = montant : les trois nombres sont cohérents">✓ {num(qn)} × {num(pu)}</div>}</td>
                     <td><input className="input py-1 w-14 text-right" disabled={!canEdit} value={l.vat_rate ?? ""} onChange={(e) => upd(i, "vat_rate", e.target.value)} /></td>
                     <td><Select className="py-1 w-28" disabled={!canEdit} value={l.status} onChange={(v) => upd(i, "status", v)} options={Object.entries(LINE_STATUS).map(([v, lb]) => ({ value: v, label: lb }))} /></td>
                     <td><Select className="py-1 w-36" disabled={!canEdit} value={l.dpgf_item_id || ""} onChange={(v) => upd(i, "dpgf_item_id", v || null)} placeholder="Auto" options={(dpgf.data || []).map((d) => ({ value: d.id, label: `${d.code || ""} ${d.designation}`.slice(0, 50) }))} /></td>
@@ -423,7 +438,12 @@ export function ComparisonView() {
             </div>);
         })}
       </div>
-      <Tabs value={tab} onChange={setTab} tabs={[{ id: "tableau", label: "Tableau comparatif" }, { id: "conclusion", label: "Conclusion argumentée" }, { id: "cctp", label: `Contrôle CCTP (${r.cctp.length})` }, { id: "offres", label: "Conditions des offres" }]} />
+      <Tabs value={tab} onChange={setTab} tabs={[{ id: "tableau", label: "Tableau comparatif" }, { id: "optim", label: "Coût réel et économies" },
+        { id: "remarques", label: `Remarques techniques (${r.optimization?.remarks?.length ?? 0})` }, { id: "conclusion", label: "Conclusion argumentée" },
+        { id: "cctp", label: `Contrôle CCTP (${r.cctp.length})` }, { id: "offres", label: "Conditions des offres" }]} />
+      {(tab === "optim" || tab === "remarques") && !r.optimization && <Card><Notice tone="warn">Ce comparatif a été créé avant l'analyse technique et économique : relancez la comparaison depuis la liste des devis pour l'obtenir.</Notice></Card>}
+      {tab === "optim" && r.optimization && <Optimization opt={r.optimization} />}
+      {tab === "remarques" && r.optimization && <Remarks remarks={r.optimization.remarks} />}
       {tab === "tableau" && (
         <Card pad={false} title={<span className="flex items-center gap-2"><Filter size={14} /> {rows.length} prestation(s)</span>}
           actions={<div className="flex items-center gap-3">
@@ -445,6 +465,8 @@ export function ComparisonView() {
                     <td key={s.quote_id} className="text-right" title={[cell.designation ? `Libellé de l'offre : ${cell.designation}` : "", cell.note || ""].filter(Boolean).join("\n")}>
                       <div className={`tabular-nums ${row.is_min === s.quote_id ? "font-semibold text-ok" : ""}`}>{cell.amount !== null && cell.amount !== undefined ? eur(cell.amount) : ""}</div>
                       {showPU && cell.unit_price !== null && cell.unit_price !== undefined && <div className="text-[10px] text-muted">{num(cell.quantity)} × {eur(cell.unit_price)}</div>}
+                      {(cell.specs || []).length > 0 && <div className="flex justify-end gap-1 mt-0.5 flex-wrap">{cell.specs.map((sp: any, k: number) => (
+                        <span key={k} title={`${sp.label} lu dans le libellé : « ${sp.text} »`} className={`chip ${cell.quality === "inferieur" ? "bg-danger/15 text-danger" : cell.quality === "different" ? "bg-warn/15 text-warn" : "bg-sunken text-muted"}`}>{sp.display}</span>))}</div>}
                       <div className="flex justify-end gap-1 mt-0.5 flex-wrap">
                         {cell.status !== "inclus" && <span className={`chip ${st.cls}`}>{st.label}</span>}
                         {cell.deviation !== null && cell.deviation !== undefined && Math.abs(cell.deviation) >= 0.05 &&
@@ -487,5 +509,92 @@ export function ComparisonView() {
           </Card>))}</div>
       )}
     </div>
+  );
+}
+
+const SEVERITY: Record<string, { label: string; cls: string; dot: string }> = {
+  haute: { label: "Haute", cls: "bg-danger/15 text-danger", dot: "bg-danger" },
+  moyenne: { label: "Moyenne", cls: "bg-warn/15 text-warn", dot: "bg-warn" },
+  info: { label: "Info", cls: "bg-info/15 text-info", dot: "bg-info" },
+};
+const THEME: Record<string, string> = { qualite: "Qualité", quantite: "Quantité", prix: "Prix", perimetre: "Périmètre", conditions: "Conditions", calcul: "Calcul" };
+
+function Optimization({ opt }: { opt: any }) {
+  const best = opt.offers.find((o: any) => o.quote_id === opt.recommended_quote_id);
+  return (
+    <div className="space-y-6">
+      <Notice tone="info">Le <b>coût réel probable</b> ajoute au montant annoncé les postes absents ou exclus (valorisés à la médiane des autres offres ou à l'estimation DPGF)
+        et les quantités sous-estimées. Les <b>économies négociables</b> visent la médiane des offres <b>conformes</b> : un prix anormalement bas ou une prestation
+        de qualité inférieure ne sert jamais de cible.</Notice>
+      <Card title="Coût réel probable par offre" pad={false}>
+        <div className="overflow-x-auto"><table className="table text-sm">
+          <thead><tr><th>Entreprise</th><th className="text-right">Annoncé HT</th><th className="text-right">+ Coûts cachés</th><th className="text-right">= Coût réel probable</th>
+            <th className="text-right">− Négociable</th><th className="text-right">Objectif HT</th><th>Qualité</th></tr></thead>
+          <tbody>{opt.offers.map((o: any) => (
+            <tr key={o.quote_id} className={o.quote_id === opt.recommended_quote_id ? "bg-ok/5" : ""}>
+              <td className="font-medium">{o.company}{o.quote_id === opt.recommended_quote_id && <span className="chip bg-ok/15 text-ok ml-2">Meilleur coût réel / qualité</span>}</td>
+              <td className="text-right tabular-nums">{eur(o.total_ht)}</td>
+              <td className={`text-right tabular-nums ${o.hidden_costs_ht ? "text-danger" : "text-muted"}`}>{o.hidden_costs_ht ? `+ ${eur(o.hidden_costs_ht)}` : "—"}</td>
+              <td className="text-right tabular-nums font-semibold">{eur(o.probable_cost_ht)}</td>
+              <td className={`text-right tabular-nums ${o.negotiable_ht ? "text-ok" : "text-muted"}`}>{o.negotiable_ht ? `− ${eur(o.negotiable_ht)}` : "—"}</td>
+              <td className="text-right tabular-nums font-semibold">{eur(o.target_cost_ht)}</td>
+              <td>{o.quality_issues ? <span className="chip bg-danger/15 text-danger">{o.quality_issues} écart(s)</span> : <span className="chip bg-ok/15 text-ok">Conforme</span>}</td>
+            </tr>))}</tbody>
+        </table></div>
+        <div className="px-5 py-3 border-t border-line text-xs text-muted">Plancher réaliste du lot (meilleur prix conforme poste par poste) : <b className="text-ink">{eur(opt.floor_ht)} HT</b>
+          {!opt.floor_complete && " — indicatif, certains postes sans prix conforme"}.
+          {opt.offers.filter((o: any) => o.probable_cost_ht < opt.floor_ht).map((o: any) => <span key={o.quote_id}> Le coût réel de {o.company} est inférieur à ce plancher : ses prix bas doivent être justifiés.</span>)}</div>
+      </Card>
+      <div className="grid lg:grid-cols-2 gap-6">
+        {opt.offers.map((o: any) => (
+          <Card key={o.quote_id} title={o.company}>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted mb-1">Leviers de négociation ({o.levers.length})</div>
+            {!o.levers.length ? <div className="text-sm text-muted mb-3">Aucun prix nettement au-dessus de la médiane des offres conformes.</div> : (
+              <ul className="space-y-1.5 mb-3">{o.levers.map((lv: any, i: number) => (
+                <li key={i} className="text-sm flex gap-2"><span className="chip bg-ok/15 text-ok shrink-0 tabular-nums">− {eur(lv.saving_ht, 0)}</span>
+                  <span><b>{lv.designation}</b> — {lv.text}</span></li>))}</ul>)}
+            <div className="text-xs font-medium uppercase tracking-wide text-muted mb-1">Coûts cachés ({o.hidden.length})</div>
+            {!o.hidden.length ? <div className="text-sm text-muted">Aucun poste manquant ni quantité sous-estimée.</div> : (
+              <ul className="space-y-1.5">{o.hidden.map((h: any, i: number) => (
+                <li key={i} className="text-sm flex gap-2"><span className="chip bg-danger/15 text-danger shrink-0 tabular-nums">+ {eur(h.amount_ht, 0)}</span>
+                  <span><b>{h.designation}</b> — {h.text}</span></li>))}</ul>)}
+            {o.options_ht > 0 && <div className="text-xs text-muted mt-3">Options proposées hors total : {eur(o.options_ht)} HT — à retenir seulement si elles répondent à un besoin.</div>}
+          </Card>))}
+      </div>
+      {best && <div className="text-xs text-muted">Recommandation du moteur de règles : <b className="text-ink">{best.company}</b>, sous réserve de lever ses remarques de gravité haute (onglet « Remarques techniques »). Aide à la décision : l'architecte reste seul juge.</div>}
+    </div>
+  );
+}
+
+function Remarks({ remarks }: { remarks: any[] }) {
+  const [sev, setSev] = useState("tous");
+  const [theme, setTheme] = useState("tous");
+  const [company, setCompany] = useState("tous");
+  const companies = Array.from(new Set(remarks.map((r) => r.company).filter(Boolean))) as string[];
+  const list = remarks.filter((r) => (sev === "tous" || r.severity === sev) && (theme === "tous" || r.category === theme)
+    && (company === "tous" || r.company === company || (!r.company && company === "toutes")));
+  return (
+    <Card pad={false} title={`${list.length} remarque(s)`} actions={<div className="flex flex-wrap gap-2">
+      <Select className="py-1 w-36" value={sev} onChange={setSev} options={[{ value: "tous", label: "Toutes gravités" }, ...Object.entries(SEVERITY).map(([v, s]) => ({ value: v, label: s.label }))]} />
+      <Select className="py-1 w-36" value={theme} onChange={setTheme} options={[{ value: "tous", label: "Tous thèmes" }, ...Object.entries(THEME).map(([v, l]) => ({ value: v, label: l }))]} />
+      <Select className="py-1 w-48" value={company} onChange={setCompany} options={[{ value: "tous", label: "Toutes entreprises" }, ...companies.map((c) => ({ value: c, label: c }))]} />
+    </div>}>
+      {!list.length ? <Empty title="Aucune remarque">Aucun point ne correspond à ces filtres.</Empty> : (
+        <ul className="divide-y divide-line">{list.map((r, i) => (
+          <li key={i} className="px-5 py-3 flex gap-3">
+            <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${SEVERITY[r.severity].dot}`} />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className={`chip ${SEVERITY[r.severity].cls}`}>{SEVERITY[r.severity].label}</span>
+                <span className="chip bg-sunken text-muted">{THEME[r.category] || r.category}</span>
+                <span className="font-medium">{r.company || "Toutes les offres"}</span>
+                {r.designation && <span className="text-muted truncate">· {r.designation}</span>}
+                {r.impact_ht !== null && r.impact_ht !== undefined && <span className={`chip tabular-nums ${r.impact_kind === "economie" ? "bg-ok/15 text-ok" : "bg-danger/15 text-danger"}`}>{r.impact_kind === "economie" ? "−" : "+"} {eur(r.impact_ht, 0)}</span>}
+              </div>
+              <div className="text-sm mt-1">{r.message}</div>
+              <div className="text-xs text-muted mt-0.5">→ {r.action}</div>
+            </div>
+          </li>))}</ul>)}
+    </Card>
   );
 }

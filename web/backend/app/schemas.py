@@ -21,7 +21,57 @@ PHASE_LABELS = {
 }
 
 
-class Strict(BaseModel):
+def _numeric_field(annotation) -> bool:
+    import types
+    import typing
+
+    args = typing.get_args(annotation) if isinstance(annotation, (types.UnionType,)) or typing.get_origin(annotation) is typing.Union else (annotation,)
+    return any(a in (int, float) for a in args)
+
+
+class FrenchNumbers(BaseModel):
+    """Accepte les nombres saisis « à la française » (« 1 250,50 », « 12,5 % ») dans les champs numériques.
+    Une valeur illisible reste refusée avec un message explicite (jamais convertie en silence)."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _fr_numbers(cls, data):
+        if not isinstance(data, dict):
+            return data
+        out = dict(data)
+        for name, f in cls.model_fields.items():
+            v = out.get(name)
+            if isinstance(v, str) and _numeric_field(f.annotation):
+                n = fr_number(name, v)
+                out[name] = n if n is None else (int(n) if (int in typing_args(f.annotation) and float not in typing_args(f.annotation) and n == int(n)) else float(n))
+        return out
+
+
+def fr_number(name: str, v: str) -> float | None:
+    """Lit un nombre saisi à la française ; chaîne vide → None ; valeur illisible → erreur explicite."""
+    from ai.document_analysis.numbers import parse_number
+
+    if not v.strip():
+        return None
+    raw = v.replace("%", "").strip()
+    # « 47.218 » (point décimal seul) : lecture standard, jamais comme séparateur de milliers
+    n = float(raw) if __import__("re").fullmatch(r"-?\d+\.\d+", raw) else parse_number(raw)
+    if n is None:
+        raise ValueError(f"{name} : « {v} » n'est pas un nombre valide.")
+    return float(n)
+
+
+TERRAIN_NUMERIC = __import__("re").compile(r".*_(m2|m|ml|ha|pct|nb)$")
+
+
+def typing_args(annotation):
+    import types
+    import typing
+
+    return typing.get_args(annotation) if isinstance(annotation, types.UnionType) or typing.get_origin(annotation) is typing.Union else (annotation,)
+
+
+class Strict(FrenchNumbers):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
@@ -40,7 +90,7 @@ class Contact(BaseModel):
     phone: str | None = None
 
 
-class Phase(BaseModel):
+class Phase(FrenchNumbers):
     model_config = ConfigDict(extra="ignore")
     code: str
     label: str | None = None
@@ -146,6 +196,18 @@ class ProjectIn(Strict):
             raise ValueError("La date de fin doit être postérieure à la date de début.")
         return self
 
+    @field_validator("terrain")
+    @classmethod
+    def _terrain_numbers(cls, t: dict[str, Any]) -> dict[str, Any]:
+        out = dict(t or {})
+        for k, v in out.items():
+            if isinstance(v, str) and TERRAIN_NUMERIC.match(k):
+                n = fr_number(f"terrain.{k}", v)
+                if n is not None and n < 0:
+                    raise ValueError(f"terrain.{k} : une valeur positive est attendue.")
+                out[k] = n
+        return out
+
 
 class LotIn(Strict):
     project_id: str
@@ -208,7 +270,7 @@ class TaskIn(Strict):
 # ---------------------------------------------------------------- Agenda
 class EventIn(Strict):
     title: str = Field(min_length=1, max_length=200)
-    kind: Literal["rdv_client", "reunion_entreprise", "visite_chantier", "interne", "autre"] = "rdv_client"
+    kind: Literal["rdv_client", "reunion_entreprise", "reunion_chantier", "visite_chantier", "echeance_admin", "livrable", "interne", "autre"] = "rdv_client"
     start: datetime
     end: datetime
     all_day: bool = False
@@ -220,6 +282,8 @@ class EventIn(Strict):
     minutes: str | None = None
     document_ids: list[str] = []
     organizer_id: str | None = None
+    client_id: str | None = None
+    company_id: str | None = None
 
     @model_validator(mode="after")
     def order(self):
@@ -243,6 +307,9 @@ class DocumentPatch(Strict):
     confidential: bool | None = None
     description: str | None = None
     linked: dict | None = None
+    status: Literal["travail", "valide", "archive"] | None = None
+    related_ids: list[str] | None = None
+    folder: str | None = Field(None, max_length=300)
 
     @field_validator("category")
     @classmethod
@@ -362,6 +429,23 @@ class ProposalIn(Strict):
 
 
 # ---------------------------------------------------------------- Utilisateurs
+class UserPermissions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    modules: dict[str, Literal["none", "read", "write", "full"]] = {}
+    projects: dict[str, Literal["none", "read", "write"]] = {}
+    assigned_only: bool = False
+
+    @field_validator("modules")
+    @classmethod
+    def _known_modules(cls, v):
+        from .security import MODULES
+
+        unknown = set(v) - set(MODULES)
+        if unknown:
+            raise ValueError(f"Module(s) inconnu(s) : {', '.join(sorted(unknown))}.")
+        return v
+
+
 class UserCreate(Strict):
     email: EmailStr
     full_name: str = Field(min_length=1, max_length=200)
@@ -370,6 +454,7 @@ class UserCreate(Strict):
     job_title: str | None = None
     phone: str | None = None
     color: str | None = None
+    permissions: UserPermissions | None = None
 
 
 class UserUpdate(Strict):
@@ -381,12 +466,36 @@ class UserUpdate(Strict):
     color: str | None = None
     password: str | None = None
     preferences: dict | None = None
+    permissions: UserPermissions | None = None
     version: int | None = None
 
 
 class LoginIn(BaseModel):
     email: str
     password: str
+    mode: Literal["admin", "collaborateur"] | None = None
+
+
+class InvitationIn(Strict):
+    kind: Literal["demo", "projet"]
+    label: str = Field(min_length=1, max_length=200)
+    guest_name: str | None = Field(None, max_length=200)
+    guest_email: EmailStr | None = None
+    valid_days: int = Field(7, ge=1, le=365)
+    expires_at: datetime | None = None
+    max_uses: int = Field(5, ge=1, le=1000)
+    project_ids: list[str] = []
+    modules: list[Literal["fiche", "documents", "planning", "terrain"]] = ["fiche", "documents"]
+    doc_categories: list[str] = []
+    can_download: bool = False
+    can_comment: bool = False
+    session_hours: int = Field(8, ge=1, le=72)
+
+    @model_validator(mode="after")
+    def _projects_required(self):
+        if self.kind == "projet" and not self.project_ids:
+            raise ValueError("Une invitation à un projet doit désigner au moins un projet.")
+        return self
 
 
 class SetupIn(Strict):
