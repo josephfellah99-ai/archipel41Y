@@ -249,12 +249,12 @@ export function useDebounced<T>(value: T, ms = 300) {
 }
 
 export function Select({ value, onChange, options, placeholder, className = "", ...rest }: {
-  value: string | null | undefined; onChange: (v: string) => void; options: { value: string; label: string }[]; placeholder?: string; className?: string; [k: string]: any;
+  value: string | null | undefined; onChange: (v: string) => void; options: { value: string; label: string; disabled?: boolean }[]; placeholder?: string; className?: string; [k: string]: any;
 }) {
   return (
     <select className={`input ${className}`} value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest}>
       {placeholder !== undefined && <option value="">{placeholder}</option>}
-      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      {options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
     </select>
   );
 }

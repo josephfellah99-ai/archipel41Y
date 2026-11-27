@@ -309,6 +309,7 @@ class DocumentPatch(Strict):
     linked: dict | None = None
     status: Literal["travail", "valide", "archive"] | None = None
     related_ids: list[str] | None = None
+    folder: str | None = Field(None, max_length=300)
 
     @field_validator("category")
     @classmethod

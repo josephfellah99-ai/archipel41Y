@@ -235,6 +235,7 @@ class Document(SyncMixin, Base):
     linked: Mapped[dict] = mapped_column(JSONType, default=dict)  # {company_id, client_id, event_id, quote_id}
     status: Mapped[str] = mapped_column(String(20), default="travail")  # travail|valide|archive
     related_ids: Mapped[list] = mapped_column(JSONType, default=list)  # liens entre documents
+    folder: Mapped[str | None] = mapped_column(String(300), nullable=True)  # dossier de l'arborescence du projet
 
 
 class DocumentVersion(SyncMixin, Base):
@@ -248,6 +249,23 @@ class DocumentVersion(SyncMixin, Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     text: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_synced: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class DocumentAnnotation(SyncMixin, Base):
+    """Annotation posée sur une page d'une version de document (zone, repère, note).
+    Coordonnées relatives à la page (0 à 1) : indépendantes du zoom. Le fichier original n'est jamais modifié."""
+
+    __tablename__ = "document_annotations"
+    document_id: Mapped[str] = mapped_column(String(36), index=True)
+    project_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    version_number: Mapped[int] = mapped_column(Integer, default=1)
+    page: Mapped[int] = mapped_column(Integer, default=1)
+    kind: Mapped[str] = mapped_column(String(20), default="zone")  # zone|repere|note
+    geometry: Mapped[dict] = mapped_column(JSONType, default=dict)  # {x, y, w, h}
+    text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    color: Mapped[str] = mapped_column(String(20), default="#D52B1E")
+    author_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    resolved: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class DocumentChunk(Base):
@@ -675,6 +693,7 @@ SYNC_MODELS: dict[str, type] = {
     "events": Event,
     "documents": Document,
     "document_versions": DocumentVersion,
+    "document_annotations": DocumentAnnotation,
     "quotes": Quote,
     "quote_lines": QuoteLine,
     "dpgf_items": DpgfItem,

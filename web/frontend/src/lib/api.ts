@@ -250,6 +250,16 @@ export async function download(path: string, filename?: string, body?: any) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+/** Bureau (Windows) : ouvre une copie du document dans le logiciel associé à son format. */
+export async function openNative(path: string, filename: string): Promise<{ ok: boolean; error?: string }> {
+  const desktop = (window as any).archipelDesktop;
+  if (!desktop?.openFile) return { ok: false, error: "Disponible dans l'application Windows uniquement." };
+  const token = getToken();
+  const res = await fetch(apiBase + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new ApiError(res.status, "Fichier indisponible");
+  return desktop.openFile(filename, new Uint8Array(await (await res.blob()).arrayBuffer()));
+}
+
 export async function blobUrl(path: string): Promise<string> {
   const token = getToken();
   const res = await fetch(apiBase + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });

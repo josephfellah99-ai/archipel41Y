@@ -322,6 +322,19 @@ def extract_document(path: str | Path, filename: str | None = None, *,
     return res
 
 
+def _zip_name(info: zipfile.ZipInfo) -> str:
+    """Nom d'une entrée ZIP : UTF-8 si l'archive le déclare, sinon encodage OEM de Windows (CP850 en France, puis CP437)."""
+    if info.flag_bits & 0x800:
+        return info.filename
+    raw = info.filename.encode("cp437", "replace")
+    for enc in ("utf-8", "cp850"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return info.filename
+
+
 def expand_zip(path: str | Path, max_files: int = 200, max_total_mb: int = 500) -> list[tuple[str, bytes]]:
     """Déplie une archive ZIP (récursivement) en protégeant contre les « zip bombs »
     et les chemins malveillants. Retourne [(nom, contenu)]."""
@@ -333,7 +346,7 @@ def expand_zip(path: str | Path, max_files: int = 200, max_total_mb: int = 500) 
         for info in zf.infolist():
             if info.is_dir():
                 continue
-            name = info.filename.replace("\\", "/")
+            name = _zip_name(info).replace("\\", "/")
             if name.startswith("__MACOSX/") or Path(name).name.startswith("."):
                 continue
             base = Path(name).name  # on ignore toute arborescence (pas de « ../ »)
